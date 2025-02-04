@@ -3,8 +3,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Подключение к серверу')
 
-parser.add_argument('--host', default='localhost', help='Адрес сервера')
-parser.add_argument('--port', type=int, default=9000, help='Порт сервера')
+parser.add_argument('--host', default='localhost', help='Хост')
+parser.add_argument('--port', type=int, default=9000, help='Порт')
 parser.add_argument('-u', '--user', default='default', help='Имя пользователя')
 parser.add_argument('-p', '--password', default='', help='Пароль')
 
