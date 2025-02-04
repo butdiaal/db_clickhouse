@@ -1,12 +1,17 @@
 from clickhouse_driver import Client
+import argparse
 
-host = 'localhost'
-port = 9000
-user = 'default'
-password = ''
+parser = argparse.ArgumentParser(description='Подключение к серверу')
+
+parser.add_argument('--host', default='localhost', help='Адрес сервера')
+parser.add_argument('--port', type=int, default=9000, help='Порт сервера')
+parser.add_argument('-u', '--user', default='default', help='Имя пользователя')
+parser.add_argument('-p', '--password', default='', help='Пароль')
+
+args = parser.parse_args()
 
 try:
-    client = Client(host=host, port=port, user=user, password=password)
+    client = Client(host=args.host, port=args.port, user=args.user, password=args.password)
 
     try:
         client.execute('''CREATE DATABASE IF NOT EXISTS db_master''')
