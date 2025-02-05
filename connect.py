@@ -1,4 +1,4 @@
-from clickhouse_driver import Client
+from clickhouse_driver import Client, errors
 import argparse
 
 success = False
@@ -27,7 +27,7 @@ def main():
         print(f'Ошибка подключения к ClickHouse: {e}.')
 
 
-def create_db(client):
+def create_db(client, database_name, table_name):
     global success
     try:
         client.execute(f'''CREATE DATABASE IF NOT EXISTS {database_name}''')
