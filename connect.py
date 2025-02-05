@@ -21,7 +21,7 @@ try:
         print('База данных успешно создана.')
 
         client.execute('''CREATE TABLE IF NOT EXISTS element
-            (doc_id UInt32, 
+            (doc_id UUID, 
             centroid Array(Float64)) 
                 ENGINE = MergeTree() 
                 ORDER BY doc_id''')
