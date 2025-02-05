@@ -4,6 +4,7 @@ import argparse
 success = False
 
 def main():
+    global client
     parser = argparse.ArgumentParser(description='Подключение к серверу')
 
     parser.add_argument('--host', default='localhost', help='Хост')
@@ -23,21 +24,22 @@ def main():
 
 
 def create_db(client):
-        try:
-            client.execute('''CREATE DATABASE IF NOT EXISTS db_master''')
-            print('База данных успешно создана.')
+    global success
+    try:
+        client.execute('''CREATE DATABASE IF NOT EXISTS db_master''')
+        print('База данных успешно создана.')
 
-            client.execute('''CREATE TABLE IF NOT EXISTS element
-                (doc_id UUID, 
-                centroid Array(Float64)) 
-                    ENGINE = MergeTree() 
-                    ORDER BY doc_id''')
-            print('Таблица успешно создана.')
+        client.execute('''CREATE TABLE IF NOT EXISTS element
+            (doc_id UUID, 
+            centroid Array(Float64)) 
+                ENGINE = MergeTree() 
+                ORDER BY doc_id''')
+        print('Таблица успешно создана.')
 
-            success = True
+        success = True
 
-        except Exception as e:
-            print(f"Ошибка создания: {e}.")
+    except Exception as e:
+        print(f"Ошибка создания: {e}.")
 
 if __name__ == "__main__":
     main()

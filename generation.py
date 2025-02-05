@@ -4,8 +4,6 @@ import argparse
 import json
 import uuid
 
-output_file_name = None
-
 def main():
     parser = argparse.ArgumentParser(description='Генерация')
 
