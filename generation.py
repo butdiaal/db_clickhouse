@@ -14,9 +14,17 @@ parser.add_argument('--file_output', type=str, default='elements.json', help='И
 
 args = parser.parse_args()
 
+existing_uuids = set()
+
 element = []
 for i in range(args.count):
-    id = str(uuid.uuid4())
+
+    while True:
+        id = str(uuid.uuid4())
+        if id not in existing_uuids:
+            existing_uuids.add(id)
+            break
+
     vector = np.random.uniform(low=args.low, high=args.high, size=args.size).tolist()
 
     element.append({
