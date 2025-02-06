@@ -15,8 +15,10 @@ def main():
     parser.add_argument("-p", "--password", default="", help="Password")
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--id", default="doc_id", help="Table name")
-    parser.add_argument("--vector", default="centroid", help="Table name")
+    parser.add_argument("--id", default="doc_id", help="Id database attribute")
+    parser.add_argument(
+        "--vector", default="centroid", help="The vector database attribute"
+    )
 
     args = parser.parse_args()
 
