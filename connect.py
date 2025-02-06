@@ -3,7 +3,7 @@ import argparse
 from clickhouse_driver import Client, errors
 
 
-'''Parses command line arguments. Connections to ClickHouse'''
+'''Processes command-line arguments and establishes a connection to the ClickHouse server, runs a check for the database'''
 def main():
     parser = argparse.ArgumentParser(description='Connecting to the server')
 
@@ -18,11 +18,11 @@ def main():
 
     try:
         client = Client(host=args.host, port=args.port, user=args.user, password=args.password)
-        logging.error('Connection successful')
+        logging.debug('Connection successful')
         check_db(client, args.database, args.table)
 
     except errors.ServerException as e:
-        logging.error(f'Error connecting to ClickHouse: {e}.')
+        logging.debug(f'Error connecting to ClickHouse: {e}.')
 
 
 '''Checks if the database and the table in it exist'''
@@ -30,28 +30,28 @@ def check_db(client, database_name, table_name):
     try:
         databases = client.execute("SHOW DATABASES")
         if database_name not in [db[0] for db in databases]:
-            logging.error(f'Database "{database_name}" does not exist, creating it.')
+            logging.debug(f'Database "{database_name}" does not exist, creating it.')
             create_db(client, database_name, table_name)
             return False
 
         tables = client.execute(f"SHOW TABLES FROM {database_name}")
         if table_name not in [table[0] for table in tables]:
-            logging.error(f'Table "{table_name}" does not exist in database "{database_name}", creating it.')
+            logging.debug(f'Table "{table_name}" does not exist in database "{database_name}", creating it.')
             create_db(client, database_name, table_name)
             return False
 
-        logging.error(f'Database "{database_name}" and table "{table_name}" exist.')
+        logging.debug(f'Database "{database_name}" and table "{table_name}" exist.')
         return True
 
     except Exception as e:
-        logging.error(f"Check error: {e}.")
+        logging.debug(f"Check error: {e}.")
         return False
 
 '''Creating a database and a table'''
 def create_db(client, database_name, table_name):
     try:
         client.execute(f'''CREATE DATABASE IF NOT EXISTS {database_name}''')
-        logging.error('The database has been created successfully')
+        logging.debug('The database has been created successfully')
 
         client.execute(f'''
             CREATE TABLE IF NOT EXISTS {database_name}.{table_name}
@@ -62,10 +62,10 @@ def create_db(client, database_name, table_name):
             ENGINE = MergeTree()
             ORDER BY doc_id
         ''')
-        logging.error('The table was created successfully')
+        logging.debug('The table was created successfully')
 
     except Exception as e:
-        logging.error(f"Creation error: {e}.")
+        logging.debug(f"Creation error: {e}.")
 
 
 if __name__ == "__main__":
