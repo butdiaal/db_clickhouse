@@ -50,9 +50,7 @@ def generate(low, high, size, count):
                 existing_uuids.add(id_uuid)
                 break
 
-        vector = np.random.uniform(
-            low=low, high=high, size=size
-        ).tolist()
+        vector = np.random.uniform(low=low, high=high, size=size).tolist()
 
         elements.append({"id": id_uuid, "vector": vector})
 
