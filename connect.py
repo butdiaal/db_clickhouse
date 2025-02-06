@@ -1,8 +1,8 @@
 from clickhouse_driver import Client, errors
 import argparse
 
-success = False
 client = None
+success = False
 
 def main():
     global client
@@ -49,6 +49,7 @@ def create_db(client, database_name, table_name):
     except Exception as e:
         print(f"Ошибка создания: {e}.")
 
+    return success
 if __name__ == "__main__":
     main()
 
