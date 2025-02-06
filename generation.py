@@ -14,7 +14,8 @@ def main():
     parser.add_argument('--high', type=float, default=1.0, help='Upper limit of the range')
     parser.add_argument('--size', type=int, default=512, help='The size of each vector')
     parser.add_argument('--count', type=int, default=20000, help='Number of vectors')
-    parser.add_argument('--file_output', type=str, default='elements.json', help='The name of the file for saving vectors')
+    parser.add_argument('--file_output', type=str, default='elements.json',
+                        help='The name of the file for saving vectors')
 
     args = parser.parse_args()
 

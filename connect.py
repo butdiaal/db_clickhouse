@@ -3,7 +3,7 @@ import argparse
 from clickhouse_driver import Client, errors
 
 
-'''Processes command-line arguments and establishes a connection to the ClickHouse server, runs a check for the database'''
+'''Processes command-line arguments and establishes a connection to the ClickHouse, runs a check for the database'''
 def main():
     parser = argparse.ArgumentParser(description='Connecting to the server')
 
