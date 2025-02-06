@@ -15,6 +15,8 @@ def main():
     parser.add_argument("-p", "--password", default="", help="Password")
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
+    parser.add_argument("--id", default="doc_id", help="Table name")
+    parser.add_argument("--vector", default="centroid", help="Table name")
 
     args = parser.parse_args()
 
@@ -23,7 +25,7 @@ def main():
             host=args.host, port=args.port, user=args.user, password=args.password
         )
         logging.debug("Connection successful")
-        check_db(client, args.database, args.table)
+        check_db(client, args.database, args.table, args.id, args.vector)
 
     except errors.ServerException as e:
         logging.debug(f"Error connecting to ClickHouse: {e}.")
@@ -32,12 +34,12 @@ def main():
 """Checks if the database and the table in it exist"""
 
 
-def check_db(client, database_name, table_name):
+def check_db(client, database_name, table_name, id, vector):
     try:
         databases = client.execute("SHOW DATABASES")
         if database_name not in [db[0] for db in databases]:
             logging.debug(f'Database "{database_name}" does not exist, creating it.')
-            create_db(client, database_name, table_name)
+            create_db(client, database_name, table_name, id, vector)
             return False
 
         tables = client.execute(f"SHOW TABLES FROM {database_name}")
@@ -45,7 +47,7 @@ def check_db(client, database_name, table_name):
             logging.debug(
                 f'Table "{table_name}" does not exist in database "{database_name}", creating it.'
             )
-            create_db(client, database_name, table_name)
+            create_db(client, database_name, table_name, id, vector)
             return False
 
         logging.debug(f'Database "{database_name}" and table "{table_name}" exist.')
@@ -59,7 +61,7 @@ def check_db(client, database_name, table_name):
 """Creating a database and a table"""
 
 
-def create_db(client, database_name, table_name):
+def create_db(client, database_name, table_name, id, vector):
     try:
         client.execute(f"""CREATE DATABASE IF NOT EXISTS {database_name}""")
         logging.debug("The database has been created successfully")
@@ -68,11 +70,11 @@ def create_db(client, database_name, table_name):
             f"""
             CREATE TABLE IF NOT EXISTS {database_name}.{table_name}
             (
-                doc_id UUID,
-                centroid Array(Float64)
+                {id} UUID,
+                {vector} Array(Float64)
             )
             ENGINE = MergeTree()
-            ORDER BY doc_id
+            ORDER BY {id}
         """
         )
         logging.debug("The table was created successfully")
