@@ -3,29 +3,35 @@ import argparse
 from clickhouse_driver import Client, errors
 
 
-'''Processes command-line arguments and establishes a connection to the ClickHouse, runs a check for the database'''
-def main():
-    parser = argparse.ArgumentParser(description='Connecting to the server')
+"""Processes command-line arguments and establishes a connection to the ClickHouse, runs a check for the database"""
 
-    parser.add_argument('--host', default='localhost', help='Host')
-    parser.add_argument('--port', type=int, default=9000, help='Port')
-    parser.add_argument('-u', '--user', default='default', help='User')
-    parser.add_argument('-p', '--password', default='', help='Password')
-    parser.add_argument('--database', default='db_master', help='Name of the database')
-    parser.add_argument('--table', default='element', help='Table name')
+
+def main():
+    parser = argparse.ArgumentParser(description="Connecting to the server")
+
+    parser.add_argument("--host", default="localhost", help="Host")
+    parser.add_argument("--port", type=int, default=9000, help="Port")
+    parser.add_argument("-u", "--user", default="default", help="User")
+    parser.add_argument("-p", "--password", default="", help="Password")
+    parser.add_argument("--database", default="db_master", help="Name of the database")
+    parser.add_argument("--table", default="element", help="Table name")
 
     args = parser.parse_args()
 
     try:
-        client = Client(host=args.host, port=args.port, user=args.user, password=args.password)
-        logging.debug('Connection successful')
+        client = Client(
+            host=args.host, port=args.port, user=args.user, password=args.password
+        )
+        logging.debug("Connection successful")
         check_db(client, args.database, args.table)
 
     except errors.ServerException as e:
-        logging.debug(f'Error connecting to ClickHouse: {e}.')
+        logging.debug(f"Error connecting to ClickHouse: {e}.")
 
 
-'''Checks if the database and the table in it exist'''
+"""Checks if the database and the table in it exist"""
+
+
 def check_db(client, database_name, table_name):
     try:
         databases = client.execute("SHOW DATABASES")
@@ -36,7 +42,9 @@ def check_db(client, database_name, table_name):
 
         tables = client.execute(f"SHOW TABLES FROM {database_name}")
         if table_name not in [table[0] for table in tables]:
-            logging.debug(f'Table "{table_name}" does not exist in database "{database_name}", creating it.')
+            logging.debug(
+                f'Table "{table_name}" does not exist in database "{database_name}", creating it.'
+            )
             create_db(client, database_name, table_name)
             return False
 
@@ -47,13 +55,17 @@ def check_db(client, database_name, table_name):
         logging.debug(f"Check error: {e}.")
         return False
 
-'''Creating a database and a table'''
+
+"""Creating a database and a table"""
+
+
 def create_db(client, database_name, table_name):
     try:
-        client.execute(f'''CREATE DATABASE IF NOT EXISTS {database_name}''')
-        logging.debug('The database has been created successfully')
+        client.execute(f"""CREATE DATABASE IF NOT EXISTS {database_name}""")
+        logging.debug("The database has been created successfully")
 
-        client.execute(f'''
+        client.execute(
+            f"""
             CREATE TABLE IF NOT EXISTS {database_name}.{table_name}
             (
                 doc_id UUID,
@@ -61,8 +73,9 @@ def create_db(client, database_name, table_name):
             )
             ENGINE = MergeTree()
             ORDER BY doc_id
-        ''')
-        logging.debug('The table was created successfully')
+        """
+        )
+        logging.debug("The table was created successfully")
 
     except Exception as e:
         logging.debug(f"Creation error: {e}.")
@@ -70,5 +83,3 @@ def create_db(client, database_name, table_name):
 
 if __name__ == "__main__":
     main()
-
-
