@@ -36,12 +36,12 @@ def main():
 """Checks if the database and the table in it exist"""
 
 
-def check_db(client, database_name, table_name, id, vector):
+def check_db(client, database_name, table_name, ids, vector):
     try:
         databases = client.execute("SHOW DATABASES")
         if database_name not in [db[0] for db in databases]:
             logging.debug(f'Database "{database_name}" does not exist, creating it.')
-            create_db(client, database_name, table_name, id, vector)
+            create_db(client, database_name, table_name, ids, vector)
             return False
 
         tables = client.execute(f"SHOW TABLES FROM {database_name}")
@@ -49,7 +49,7 @@ def check_db(client, database_name, table_name, id, vector):
             logging.debug(
                 f'Table "{table_name}" does not exist in database "{database_name}", creating it.'
             )
-            create_db(client, database_name, table_name, id, vector)
+            create_db(client, database_name, table_name, ids, vector)
             return False
 
         logging.debug(f'Database "{database_name}" and table "{table_name}" exist.')
@@ -63,7 +63,7 @@ def check_db(client, database_name, table_name, id, vector):
 """Creating a database and a table"""
 
 
-def create_db(client, database_name, table_name, id, vector):
+def create_db(client, database_name, table_name, ids, vector):
     try:
         client.execute(f"""CREATE DATABASE IF NOT EXISTS {database_name}""")
         logging.debug("The database has been created successfully")
@@ -72,7 +72,7 @@ def create_db(client, database_name, table_name, id, vector):
             f"""
             CREATE TABLE IF NOT EXISTS {database_name}.{table_name}
             (
-                {id} UUID,
+                {ids} UUID,
                 {vector} Array(Float64)
             )
             ENGINE = MergeTree()
