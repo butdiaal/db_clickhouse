@@ -29,7 +29,7 @@ def main():
 
     args = parser.parse_args()
 
-    elements = generate(args)
+    elements = generate(args.low, args.high, args.size, args.count)
     save_to_json(elements, args.file_output)
 
     logging.debug(f"Vectors have been successfully saved to a file {args.file_output}")
@@ -38,11 +38,11 @@ def main():
 """Generates vectors based on the specified parameters"""
 
 
-def generate(args):
+def generate(low, high, size, count):
     existing_uuids = set()
 
     elements = []
-    for i in range(args.count):
+    for i in range(count):
 
         while True:
             id_uuid = str(uuid.uuid4())
@@ -51,7 +51,7 @@ def generate(args):
                 break
 
         vector = np.random.uniform(
-            low=args.low, high=args.high, size=args.size
+            low=low, high=high, size=size
         ).tolist()
 
         elements.append({"id": id_uuid, "vector": vector})
