@@ -27,8 +27,6 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG)
-
     try:
         client = Client(
             host=args.host, port=args.port, user=args.user, password=args.password
