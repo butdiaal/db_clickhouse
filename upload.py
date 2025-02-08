@@ -36,7 +36,7 @@ def main():
         check_db(client, args.database, args.table)
 
         data = load_data(args.file_input)
-        if data:
+        if data != None:
             insert_data(client, data)
 
     except errors.ServerException as e:
