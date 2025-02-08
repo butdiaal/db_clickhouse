@@ -18,6 +18,10 @@ def main():
     parser.add_argument("-p", "--password", default="", help="Password")
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
+    parser.add_argument("--id", default="doc_id", help="Id database attribute")
+    parser.add_argument(
+        "--vector", default="centroid", help="The vector database attribute"
+    )
     parser.add_argument(
         "--file_input",
         type=str,
@@ -31,38 +35,39 @@ def main():
         client = Client(
             host=args.host, port=args.port, user=args.user, password=args.password
         )
-        logging.debug("Connection successful")
+        logging.error("Connection successful")
 
-        check_db(client, args.database, args.table)
+        check_db(client, args.database, args.table, args.id, args.vector)
 
         data = load_data(args.file_input)
         if data != None:
             insert_data(client, data)
 
     except errors.ServerException as e:
-        logging.debug(f"Error connecting to ClickHouse: {e}")
+        logging.error(f"Error connecting to ClickHouse: {e}")
     except Exception as e:
-        logging.debug(f"An error has occurred: {e}")
+        logging.error(f"An error has occurred: {e}")
 
 
 """Loads data from a JSON file"""
 
 
 def load_data(file_input):
+    data_to_load = []
+
     if os.path.exists(file_input) and os.path.getsize(file_input) > 0:
         with open(file_input, "r") as file:
             elements = json.load(file)
 
-        data_to_load = []
         for element in elements:
             doc_id = element["id"]
             centroid = element["vector"]
             data_to_load.append((doc_id, centroid))
 
-        return data_to_load
     else:
-        logging.debug(f"The file {file_input} does not exist or it is empty")
-        return None
+        logging.error(f"The file {file_input} does not exist or it is empty")
+
+    return data_to_load
 
 
 """Inserts data into a database table"""
@@ -74,11 +79,11 @@ def insert_data(client, data_to_load):
             client.execute(
                 "INSERT INTO db_master.element (doc_id, centroid) VALUES", data_to_load
             )
-            logging.debug("The data has been successfully inserted")
+            logging.error("The data has been successfully inserted")
         except Exception as e:
-            logging.debug(f"Data insertion error: {e}")
+            logging.error(f"Data insertion error: {e}")
     else:
-        logging.debug("No data to insert.")
+        logging.error("No data to insert.")
 
 
 if __name__ == "__main__":
