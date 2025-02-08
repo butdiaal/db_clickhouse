@@ -84,7 +84,7 @@ def get_vectors(client, database, table, ids, vector):
 
     except Exception as e:
         logging.debug(f"Error when receiving data: {e}")
-        return False
+        return None
 
 
 """Calculates the difference between one vector and vectors from the Database"""
