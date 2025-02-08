@@ -26,11 +26,11 @@ def main():
         client = Client(
             host=args.host, port=args.port, user=args.user, password=args.password
         )
-        logging.debug("Connection successful")
+        logging.error("Connection successful")
         check_db(client, args.database, args.table, args.id, args.vector)
 
     except errors.ServerException as e:
-        logging.debug(f"Error connecting to ClickHouse: {e}.")
+        logging.error(f"Error connecting to ClickHouse: {e}.")
 
 
 """Checks if the database and the table in it exist"""
@@ -40,23 +40,23 @@ def check_db(client, database_name, table_name, ids, vector):
     try:
         databases = client.execute("SHOW DATABASES")
         if database_name not in [db[0] for db in databases]:
-            logging.debug(f'Database "{database_name}" does not exist, creating it.')
+            logging.error(f'Database "{database_name}" does not exist, creating it.')
             create_db(client, database_name, table_name, ids, vector)
             return False
 
         tables = client.execute(f"SHOW TABLES FROM {database_name}")
         if table_name not in [table[0] for table in tables]:
-            logging.debug(
+            logging.error(
                 f'Table "{table_name}" does not exist in database "{database_name}", creating it.'
             )
             create_db(client, database_name, table_name, ids, vector)
             return False
 
-        logging.debug(f'Database "{database_name}" and table "{table_name}" exist.')
+        logging.error(f'Database "{database_name}" and table "{table_name}" exist.')
         return True
 
     except Exception as e:
-        logging.debug(f"Check error: {e}.")
+        logging.error(f"Check error: {e}.")
         return False
 
 
@@ -66,7 +66,7 @@ def check_db(client, database_name, table_name, ids, vector):
 def create_db(client, database_name, table_name, ids, vector):
     try:
         client.execute(f"""CREATE DATABASE IF NOT EXISTS {database_name}""")
-        logging.debug("The database has been created successfully")
+        logging.error("The database has been created successfully")
 
         client.execute(
             f"""
@@ -79,10 +79,10 @@ def create_db(client, database_name, table_name, ids, vector):
             ORDER BY {id}
         """
         )
-        logging.debug("The table was created successfully")
+        logging.error("The table was created successfully")
 
     except Exception as e:
-        logging.debug(f"Creation error: {e}.")
+        logging.error(f"Creation error: {e}.")
 
 
 if __name__ == "__main__":

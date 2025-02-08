@@ -41,7 +41,7 @@ def main():
         client = Client(
             host=args.host, port=args.port, user=args.user, password=args.password
         )
-        logging.debug("Connection successful")
+        logging.error("Connection successful")
 
         vectors_db = get_vectors(
             client, args.database, args.table, args.id, args.vector
@@ -51,12 +51,11 @@ def main():
 
         similar_vectors = search_similar(vectors_db, vector, args.count)
         print_similar_vectors(similar_vectors)
-        logging.debug(f"Similar vectors: {similar_vectors}")
 
     except errors.ServerException as e:
-        logging.debug(f"Error connecting to ClickHouse: {e}")
+        logging.error(f"Error connecting to ClickHouse: {e}")
     except Exception as e:
-        logging.debug(f"An error has occurred: {e}")
+        logging.error(f"An error has occurred: {e}")
 
 
 """Generates a vector"""
@@ -73,7 +72,7 @@ def generate_vector(low, high, size):
 def get_vectors(client, database, table, ids, vector):
     try:
         result = client.execute(f"""SELECT {ids}, {vector} FROM {database}.{table}""")
-        logging.debug("Data found and received")
+        logging.error("Data found and received")
 
         vectors_index = {}
         for row in result:
@@ -83,7 +82,7 @@ def get_vectors(client, database, table, ids, vector):
         return vectors_index
 
     except Exception as e:
-        logging.debug(f"Error when receiving data: {e}")
+        logging.error(f"Error when receiving data: {e}")
         return None
 
 

@@ -32,7 +32,7 @@ def main():
     elements = generate(args.low, args.high, args.size, args.count)
     save_to_json(elements, args.file_output)
 
-    logging.debug(f"Vectors have been successfully saved to a file {args.file_output}")
+    logging.error(f"Vectors have been successfully saved to a file {args.file_output}")
 
 
 """Generates vectors based on the specified parameters"""
