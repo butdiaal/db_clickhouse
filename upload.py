@@ -19,10 +19,10 @@ def main():
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
     parser.add_argument(
-        "--file_output",
+        "--file_input",
         type=str,
         default="elements.json",
-        help="The name of the file for saving vectors",
+        help="The name of the file where the vectors are saved",
     )
 
     args = parser.parse_args()
@@ -35,7 +35,7 @@ def main():
 
         check_db(client, args.database, args.table)
 
-        data = load_data(args.file_output)
+        data = load_data(args.file_input)
         if data:
             insert_data(client, data)
 
@@ -48,9 +48,9 @@ def main():
 """Loads data from a JSON file"""
 
 
-def load_data(file_output):
-    if os.path.exists(file_output) and os.path.getsize(file_output) > 0:
-        with open(file_output, "r") as file:
+def load_data(file_input):
+    if os.path.exists(file_input) and os.path.getsize(file_input) > 0:
+        with open(file_input, "r") as file:
             elements = json.load(file)
 
         data_to_load = []
@@ -61,8 +61,8 @@ def load_data(file_output):
 
         return data_to_load
     else:
-        logging.debug(f"The file {file_output} does not exist or it is empty")
-        return False
+        logging.debug(f"The file {file_input} does not exist or it is empty")
+        return None
 
 
 """Inserts data into a database table"""
