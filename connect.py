@@ -76,7 +76,7 @@ def create_db(client, database_name, table_name, ids, vector):
                 {vector} Array(Float64)
             )
             ENGINE = MergeTree()
-            ORDER BY {id}
+            ORDER BY {ids}
         """
         )
         logging.error("The table was created successfully")
