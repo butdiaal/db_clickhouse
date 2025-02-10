@@ -44,7 +44,7 @@ def main():
         logging.error("Connection successful")
 
         check_db(client, args.database, args.table, args.id, args.vector)
-        # output_index(client, args.database, args.table, args.id, args.vector)
+
         similar = similar_vectors(
             client,
             input_vector,
@@ -68,12 +68,6 @@ def main():
 def generate_vector(low, high, size):
     vector = np.random.uniform(low=low, high=high, size=size).tolist()
     return vector
-
-
-def output_index(client, database, table, id_column, vector_column):
-    result = client.execute(
-        f"""CREATE INDEX idx_bloom_filter ON {database}.{table}({vector_column}) TYPE bloom_filter GRANULARITY 3;"""
-    )
 
 
 """Calculating the Euclidean distance in an SQL query"""
