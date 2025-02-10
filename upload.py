@@ -18,9 +18,9 @@ def main():
     parser.add_argument("-p", "--password", default="", help="Password")
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--id", default="doc_id", help="Id database attribute")
+    parser.add_argument("--ids", default="doc_id", help="Ids database attribute")
     parser.add_argument(
-        "--vector", default="centroid", help="The vector database attribute"
+        "--vectors", default="centroid", help="The vectors database attribute"
     )
     parser.add_argument(
         "--file_input",
@@ -37,7 +37,7 @@ def main():
         )
         logging.error("Connection successful")
 
-        check_db(client, args.database, args.table, args.id, args.vector)
+        check_db(client, args.database, args.table, args.ids, args.vectors)
 
         data = load_data(args.file_input)
         if data != None:

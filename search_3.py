@@ -1,6 +1,3 @@
-import uuid
-import json
-import faiss
 import random
 import logging
 import argparse
@@ -32,6 +29,7 @@ def main():
     parser.add_argument(
         "--vector", default="centroid", help="The vector database attribute"
     )
+    parser.add_argument("--index", default="idx", help="The index database attribute")
 
     args = parser.parse_args()
 
@@ -44,6 +42,8 @@ def main():
         logging.error("Connection successful")
 
         check_db(client, args.database, args.table, args.id, args.vector)
+
+        check_index(client, args.database, args.table, args.vector, args.index)
 
         similar = similar_vectors(
             client,
@@ -60,6 +60,36 @@ def main():
         logging.error(f"Error connecting to ClickHouse: {e}")
     except Exception as e:
         logging.error(f"An error has occurred: {e}")
+
+
+"""Checks whether the index exists in the table"""
+
+
+def check_index(client, database, table, vector_column, index_name):
+    client.execute(f"""SET allow_experimental_vector_similarity_index = 1;""")
+
+    result = client.execute(f"SHOW CREATE TABLE {database}.{table}")
+
+    create_table_statement = result[0][0]
+
+    if f"INDEX {index_name}" in create_table_statement:
+        logging.error(f"The index '{index_name}' was successfully added")
+    else:
+        logging.error(f"The index '{index_name}' already exists")
+        add_index(client, database, table, index_name, index_name)
+
+
+"""The index is added to the database table"""
+
+
+def add_index(client, database, table, vector_column, index_name):
+    client.execute(f"""SET allow_experimental_vector_similarity_index = 1;""")
+
+    client.execute(
+        f"""ALTER TABLE {database}.{table}
+            ADD INDEX {index_name} {vector_column} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1;
+        """
+    )
 
 
 """Generates a vector"""
@@ -79,19 +109,16 @@ def similar_vectors(
     try:
         vector_str = "[" + ",".join(map(str, input_vector)) + "]"
         result = client.execute(
-            f"""SELECT
-            {id_column},
-            {vector_column},
-            sqrt(arraySum(arrayMap(i -> power({vector_column}[i] - {vector_str}[i], 2), range(length({vector_column}))))) AS distance
-        FROM
-            {database}.{table}
-        WHERE
-            length({vector_column}) = length({vector_str}) 
-        ORDER BY
-            distance ASC
-        LIMIT {count};"""
+            f"""
+            WITH {vector_str} AS reference_vector
+             SELECT 
+                {id_column}, 
+                L2Distance({vector_column}, reference_vector) AS distance
+            FROM {database}.{table}
+            ORDER BY distance
+            LIMIT {count}"""
         )
-        logging.info("Query executed successfully")
+        logging.error("Query executed successfully")
         return result
     except Exception as e:
         logging.error(f"Error executing query: {e}")
@@ -100,8 +127,13 @@ def similar_vectors(
 
 def print_similar_vectors(similar_vectors):
     logging.error("Similar vectors:")
-    for doc_id, distance in similar_vectors:
-        logging.error(f"ID: {doc_id}, Distance: {distance:.2f}")
+    if similar_vectors:
+        for vector in similar_vectors:
+            doc_id = vector[0]
+            distance = vector[1]
+            logging.error(f"ID: {doc_id}, Distance: {distance:.2f}")
+    else:
+        print("No similar vectors found.")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,3 @@
-import uuid
-import json
-import faiss
 import random
 import logging
 import argparse
@@ -28,9 +25,9 @@ def main():
     parser.add_argument("-p", "--password", default="", help="Password")
     parser.add_argument("--database", default="db_master", help="Name of the database")
     parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--id", default="doc_id", help="Id database attribute")
+    parser.add_argument("--ids", default="doc_id", help="Id database attribute")
     parser.add_argument(
-        "--vector", default="centroid", help="The vector database attribute"
+        "--vectors", default="centroid", help="The vector database attribute"
     )
 
     args = parser.parse_args()
@@ -44,10 +41,10 @@ def main():
         logging.error("Connection successful")
 
         vectors_db = get_vectors(
-            client, args.database, args.table, args.id, args.vector
+            client, args.database, args.table, args.ids, args.vectors
         )
 
-        check_db(client, args.database, args.table, args.id, args.vector)
+        check_db(client, args.database, args.table, args.ids, args.vectors)
 
         similar_vectors = search_similar(vectors_db, vector, args.count)
         print_similar_vectors(similar_vectors)
@@ -69,15 +66,15 @@ def generate_vector(low, high, size):
 """Retrieves identifiers and vectors from the Database"""
 
 
-def get_vectors(client, database, table, ids, vector):
+def get_vectors(client, database, table, ids, vectors):
     try:
-        result = client.execute(f"""SELECT {ids}, {vector} FROM {database}.{table}""")
+        result = client.execute(f"""SELECT {ids}, {vectors} FROM {database}.{table}""")
         logging.error("Data found and received")
 
         vectors_index = {}
         for row in result:
             doc_id, centroid = row
-            vectors_index[str(doc_id)] = np.array(centroid).astype("float32")
+            vectors_index[str(doc_id)] = np.array(centroid).astype("float64")
 
         return vectors_index
 
@@ -103,7 +100,7 @@ def calculating_distance():
 
 
 def euclidean_distance(a, b):
-    return np.sum((a - b) ** 2)
+    return np.sqrt(np.sum((a - b) ** 2))
 
 
 """Searches for the most similar vectors to the same vector"""
