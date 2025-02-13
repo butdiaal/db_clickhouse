@@ -3,12 +3,6 @@ import logging
 import argparse
 import numpy as np
 from clickhouse_driver import Client, errors
-
-import json
-import logging
-import argparse
-import numpy as np
-from clickhouse_driver import Client
 from typing import List, Tuple, Dict, Optional
 
 
