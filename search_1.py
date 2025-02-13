@@ -1,75 +1,81 @@
-import random
+import json
 import logging
 import argparse
 import numpy as np
 from clickhouse_driver import Client, errors
-from connect import check_db
-
-"""The main function, configuration parameters, the function searches for similar vectors in the ClickHouse database."""
 
 
-def main():
-    parser = argparse.ArgumentParser(description="The first search method")
+def print_similar_vectors(similar_vectors: dict[int, list[tuple[str, float]]]) -> None:
+    """
+    Logs the results of similar vector searches.
 
-    parser.add_argument(
-        "--low", type=float, default=0.0, help="The lower limit of the range"
-    )
-    parser.add_argument(
-        "--high", type=float, default=1.0, help="Upper limit of the range"
-    )
-    parser.add_argument("--size", type=int, default=512, help="The size of each vector")
-    parser.add_argument("--count", type=int, default=10, help="Count of similar data")
-    parser.add_argument("--host", default="localhost", help="Host")
-    parser.add_argument("--port", type=int, default=9000, help="Port")
-    parser.add_argument("-u", "--user", default="default", help="User")
-    parser.add_argument("-p", "--password", default="", help="Password")
-    parser.add_argument("--database", default="db_master", help="Name of the database")
-    parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--ids", default="doc_id", help="Id database attribute")
-    parser.add_argument(
-        "--vectors", default="centroid", help="The vector database attribute"
-    )
-
-    args = parser.parse_args()
-
-    vector = generate_vector(args.low, args.high, args.size)
-
-    try:
-        client = Client(
-            host=args.host, port=args.port, user=args.user, password=args.password
-        )
-        logging.error("Connection successful")
-
-        vectors_db = get_vectors(
-            client, args.database, args.table, args.ids, args.vectors
-        )
-
-        check_db(client, args.database, args.table, args.ids, args.vectors)
-
-        similar_vectors = search_similar(vectors_db, vector, args.count)
-        print_similar_vectors(similar_vectors)
-
-    except errors.ServerException as e:
-        logging.error(f"Error connecting to ClickHouse: {e}")
-    except Exception as e:
-        logging.error(f"An error has occurred: {e}")
+    :param similar_vectors: A dictionary where keys are input vector indices
+                            and values are lists of tuples (document ID, distance).
+    """
+    for index, result in similar_vectors.items():
+        logging.warning(f"Results for the {index+1}th vector:")
+        for row in result:
+            logging.warning(f"ID: {row[0]}, Distance: {row[1]}")
 
 
-"""Generates a vector"""
+def search_similar(
+    vectors_index: dict[str, np.ndarray], input_vectors: list[list[float]], count: int
+) -> dict[int, list[tuple[str, float]]]:
+    """
+    Searches for the most similar vectors using Euclidean distance.
+
+    :param vectors_index: A dictionary of stored vectors with document IDs as keys.
+    :param input_vectors: A list of input vectors for which to find similar vectors.
+    :param count: The number of similar vectors to return.
+    :return: A dictionary mapping input vector indices to lists of similar document IDs and distances.
+    """
+    if len(vectors_index) == 0:
+        return {}
+
+    similar_vectors = {}
+
+    for idx, input_vector in enumerate(input_vectors):
+        input_vector = np.array(input_vector).astype("float64")
+
+        similarities = [
+            (doc_id, euclidean_distance(input_vector, vector))
+            for doc_id, vector in vectors_index.items()
+        ]
+
+        sorted_similarities = sorted(similarities, key=lambda x: x[1])
+
+        similar_vectors[idx] = sorted_similarities[:count]
+
+    return similar_vectors
 
 
-def generate_vector(low, high, size):
-    vector = np.random.uniform(low=low, high=high, size=size).tolist()
-    return vector
+def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
+    """
+    Calculates the Euclidean distance between two vectors.
+
+    :param a: First vector.
+    :param b: Second vector.
+    :return: Euclidean distance between a and b.
+    """
+    return np.sqrt(np.sum((a - b) ** 2))
 
 
-"""Retrieves identifiers and vectors from the Database"""
+def get_vectors(
+    client: Client, database: str, table: str, ids: str, vectors: str
+) -> dict[str, np.ndarray]:
+    """
+    Retrieves vector data from the ClickHouse database.
 
-
-def get_vectors(client, database, table, ids, vectors):
+    :param client: ClickHouse client instance.
+    :param database: The name of the database.
+    :param table: The name of the table.
+    :param ids: The column name for document IDs.
+    :param vectors: The column name for vector data.
+    :return: A dictionary mapping document IDs to vector arrays.
+    """
     try:
         result = client.execute(f"""SELECT {ids}, {vectors} FROM {database}.{table}""")
-        logging.error("Data found and received")
+        logging.warning("Data found and received")
 
         vectors_index = {}
         for row in result:
@@ -83,49 +89,80 @@ def get_vectors(client, database, table, ids, vectors):
         return None
 
 
-"""Calculates the difference between one vector and vectors from the Database"""
+def vectors_from_json(file_path: str) -> list[list[float]]:
+    """
+    Loads input vectors from a JSON file.
+
+    :param file_path: Path to the JSON file.
+    :return: A list of vectors.
+    """
+    with open(file_path, "r") as f:
+        data = json.load(f)
+    input_vectors = [item["vector"] for item in data]
+    return input_vectors
 
 
-def calculating_distance():
-    distances = {}
-    for doc_id, db_vector in vectors_index.items():
-        distance = np.linalg.norm(db_vector - vector)
-        distances[doc_id] = distance
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parses command-line arguments.
 
-    sorted_distances = sorted(distances.items(), key=lambda item: item[1])
-    return sorted_distances
+    :return: Parsed arguments as a namespace object.
+    """
+    parser = argparse.ArgumentParser(description="The first search method")
+
+    parser.add_argument("--host", default="localhost", help="Host")
+    parser.add_argument("--port", default=9000, help="Port")
+    parser.add_argument("-u", "--user", default="default", help="User")
+    parser.add_argument("-p", "--password", default="", help="Password")
+    parser.add_argument("--database", default="db_master", help="Name of the database")
+    parser.add_argument("--table", default="element", help="Table name")
+    parser.add_argument("--ids", default="doc_id", help="Id database attribute")
+    parser.add_argument(
+        "--vectors", default="centroid", help="The vector database attribute"
+    )
+    parser.add_argument(
+        "--low", type=float, default=0.0, help="The lower limit of the range"
+    )
+    parser.add_argument(
+        "--high", type=float, default=1.0, help="Upper limit of the range"
+    )
+    parser.add_argument("--size", type=int, default=512, help="The size of each vector")
+    parser.add_argument("--count", type=int, default=10, help="Count of similar data")
+    parser.add_argument(
+        "--file",
+        type=str,
+        default="test.json",
+        help="Vector storage file for searching",
+    )
+
+    return parser.parse_args()
 
 
-"""Calculates the Euclidean distance"""
+def main() -> None:
+    """
+    Main function that handles database connection, retrieves data,
+    and performs similarity search.
+    """
 
+    args = parse_arguments()
 
-def euclidean_distance(a, b):
-    return np.sqrt(np.sum((a - b) ** 2))
+    input_vectors = vectors_from_json(args.file)
 
+    try:
+        client = Client(
+            host=args.host, port=args.port, user=args.user, password=args.password
+        )
+        logging.warning("Connection successful")
 
-"""Searches for the most similar vectors to the same vector"""
+        vectors_db = get_vectors(
+            client, args.database, args.table, args.ids, args.vectors
+        )
 
+        similar_vectors = search_similar(vectors_db, input_vectors, args.count)
+        print_similar_vectors(similar_vectors)
 
-def search_similar(vectors_index, input_vector, count):
-    if len(vectors_index) == 0:
-        return []
-
-    input_vector = np.array(input_vector)
-
-    similarities = [
-        (doc_id, euclidean_distance(input_vector, vector))
-        for doc_id, vector in vectors_index.items()
-    ]
-
-    sorted_similarities = sorted(similarities, key=lambda x: x[1])
-
-    return sorted_similarities[:count]
-
-
-def print_similar_vectors(similar_vectors):
-    logging.error("Similar vectors:")
-    for doc_id, distance in similar_vectors:
-        logging.error(f"ID: {doc_id}, Distance: {distance:.2f}")
+    except Exception as e:
+        logging.error(f"An error has occurred: {e}")
 
 
 if __name__ == "__main__":

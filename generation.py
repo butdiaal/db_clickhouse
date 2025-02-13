@@ -6,10 +6,49 @@ import json
 import uuid
 
 
-"""The main function of the program processes command line arguments, generates vectors and saves them to a file."""
+def save_to_json(elements: List[Dict[str, object]], file_output: str) -> None:
+    """
+    Saves generated elements (UUIDs with vectors) to a JSON file.
+
+    :param elements: List of dictionaries containing UUIDs and vectors.
+    :param file_output: File path to save the JSON data.
+    """
+    with open(file_output, "w") as json_file:
+        json.dump(elements, json_file, indent=4)
 
 
-def main():
+def generate(low: float, high: float, size: int, count: int) -> List[Dict[str, object]]:
+    """
+    Generates a list of elements, each containing a random UUID and a vector.
+
+    :param low: Lower limit for vector values.
+    :param high: Upper limit for vector values.
+    :param size: Dimension of each vector.
+    :param count: Number of vectors to generate.
+    :return: A list of dictionaries containing UUIDs and vectors.
+    """
+    existing_uuids = set()
+
+    elements = []
+    for i in range(count):
+
+        while True:
+            id_uuid = str(uuid.uuid4())
+            if id_uuid not in existing_uuids:
+                existing_uuids.add(id_uuid)
+                break
+
+        vector = np.random.uniform(low=low, high=high, size=size).tolist()
+
+        elements.append({"id": id_uuid, "vector": vector})
+
+    return elements
+
+
+def main() -> None:
+    """
+    Parses command-line arguments, generates random vectors, waits for a specified file, and saves the vectors to a file.
+    """
     parser = argparse.ArgumentParser(description="Generation")
 
     parser.add_argument(
@@ -32,37 +71,7 @@ def main():
     elements = generate(args.low, args.high, args.size, args.count)
     save_to_json(elements, args.file_output)
 
-    logging.error(f"Vectors have been successfully saved to a file {args.file_output}")
-
-
-"""Generates vectors based on the specified parameters"""
-
-
-def generate(low, high, size, count):
-    existing_uuids = set()
-
-    elements = []
-    for i in range(count):
-
-        while True:
-            id_uuid = str(uuid.uuid4())
-            if id_uuid not in existing_uuids:
-                existing_uuids.add(id_uuid)
-                break
-
-        vector = np.random.uniform(low=low, high=high, size=size).tolist()
-
-        elements.append({"id": id_uuid, "vector": vector})
-
-    return elements
-
-
-"""Saves data to a file in JSON format"""
-
-
-def save_to_json(elements, file_output):
-    with open(file_output, "w") as json_file:
-        json.dump(elements, json_file, indent=4)
+    logging.warning(f"Vectors have been successfully saved to a file {args.file_output}")
 
 
 if __name__ == "__main__":

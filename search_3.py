@@ -1,16 +1,106 @@
-import random
+import json
 import logging
 import argparse
 import numpy as np
 from clickhouse_driver import Client, errors
-from connect import check_db
-
-"""The main function, configuration parameters, the function searches for similar vectors in the ClickHouse database."""
 
 
-def main():
+def print_similar_vectors(
+    similar_vectors: list[tuple[int, list[tuple[str, float]]]],
+) -> None:
+    """
+    Logs the results of similar vector searches.
+
+    :param similar_vectors: A list of tuples where each tuple contains:
+        - The index of the input vector.
+        - A list of tuples (document ID, distance).
+    """
+    for index, result in similar_vectors:
+        logging.warning(f"Results for the {index}th vector:")
+        for row in result:
+            logging.warning(f"ID: {row[0]}, Distance: {row[1]}")
+
+
+def similar_vectors(
+    client: Client,
+    input_vectors: list[list[float]],
+    database: str,
+    table: str,
+    id_column: str,
+    vector_column: str,
+    count: int,
+) -> list[tuple[int, list[tuple[str, float]]]]:
+    """
+    Finds the most similar vectors using the L2 (Euclidean) distance function in ClickHouse.
+
+    :param client: ClickHouse client instance.
+    :param input_vectors: A list of input vectors.
+    :param database: The name of the database.
+    :param table: The name of the table.
+    :param id_column: The column name for document IDs.
+    :param vector_column: The column name for vector data.
+    :param count: The number of most similar vectors to retrieve.
+    :return: A list of tuples, each containing:
+        - The index of the input vector.
+        - A list of tuples with document IDs and distances.
+    """
+    try:
+        all_results = []
+
+        for index, input_vector in enumerate(input_vectors, start=1):
+            vector_str = "[" + ",".join(map(str, input_vector)) + "]"
+
+            result = client.execute(
+                f"""
+                    WITH {vector_str} AS reference_vector
+                     SELECT 
+                        {id_column}, 
+                        L2Distance({vector_column}, reference_vector) AS distance
+                    FROM {database}.{table}
+                    ORDER BY distance
+                    LIMIT {count}"""
+            )
+
+            all_results.append((index, result))
+
+        logging.warning("Query executed successfully")
+        return all_results
+    except Exception as e:
+        logging.error(f"Error executing query: {e}")
+        return []
+
+
+def vectors_from_json(file_path: str) -> list[list[float]]:
+    """
+    Loads input vectors from a JSON file.
+
+    :param file_path: Path to the JSON file.
+    :return: A list of vectors.
+    """
+    with open(file_path, "r") as f:
+        data = json.load(f)
+    input_vectors = [item["vector"] for item in data]
+    return input_vectors
+
+
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parses command-line arguments.
+
+    :return: Parsed arguments as a namespace object.
+    """
     parser = argparse.ArgumentParser(description="The first search method")
 
+    parser.add_argument("--host", default="localhost", help="Host")
+    parser.add_argument("--port", default=9000, help="Port")
+    parser.add_argument("-u", "--user", default="default", help="User")
+    parser.add_argument("-p", "--password", default="", help="Password")
+    parser.add_argument("--database", default="db_master", help="Name of the database")
+    parser.add_argument("--table", default="element", help="Table name")
+    parser.add_argument("--id", default="doc_id", help="Id database attribute")
+    parser.add_argument(
+        "--vectors", default="centroid", help="The vector database attribute"
+    )
     parser.add_argument(
         "--low", type=float, default=0.0, help="The lower limit of the range"
     )
@@ -19,121 +109,43 @@ def main():
     )
     parser.add_argument("--size", type=int, default=512, help="The size of each vector")
     parser.add_argument("--count", type=int, default=10, help="Count of similar data")
-    parser.add_argument("--host", default="localhost", help="Host")
-    parser.add_argument("--port", type=int, default=9000, help="Port")
-    parser.add_argument("-u", "--user", default="default", help="User")
-    parser.add_argument("-p", "--password", default="", help="Password")
-    parser.add_argument("--database", default="db_master", help="Name of the database")
-    parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--id", default="doc_id", help="Id database attribute")
     parser.add_argument(
-        "--vector", default="centroid", help="The vector database attribute"
+        "--file",
+        type=str,
+        default="test.json",
+        help="Vector storage file for searching",
     )
-    parser.add_argument("--index", default="idx", help="The index database attribute")
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
-    input_vector = generate_vector(args.low, args.high, args.size)
+def main() -> None:
+    """
+    Main function that handles database connection, retrieves data,
+    and performs similarity search.
+    """
+    args = parse_arguments()
+
+    input_vectors = vectors_from_json(args.file)
 
     try:
         client = Client(
             host=args.host, port=args.port, user=args.user, password=args.password
         )
-        logging.error("Connection successful")
-
-        check_db(client, args.database, args.table, args.id, args.vector)
-
-        check_index(client, args.database, args.table, args.vector, args.index)
+        logging.warning("Connection successful")
 
         similar = similar_vectors(
             client,
-            input_vector,
+            input_vectors,
             args.database,
             args.table,
             args.id,
-            args.vector,
+            args.vectors,
             args.count,
         )
         print_similar_vectors(similar)
 
-    except errors.ServerException as e:
-        logging.error(f"Error connecting to ClickHouse: {e}")
     except Exception as e:
         logging.error(f"An error has occurred: {e}")
-
-
-"""Checks whether the index exists in the table"""
-
-
-def check_index(client, database, table, vector_column, index_name):
-    client.execute(f"""SET allow_experimental_vector_similarity_index = 1;""")
-
-    result = client.execute(f"SHOW CREATE TABLE {database}.{table}")
-
-    create_table_statement = result[0][0]
-
-    if f"INDEX {index_name}" in create_table_statement:
-        logging.error(f"The index '{index_name}' was successfully added")
-    else:
-        logging.error(f"The index '{index_name}' already exists")
-        add_index(client, database, table, index_name, index_name)
-
-
-"""The index is added to the database table"""
-
-
-def add_index(client, database, table, vector_column, index_name):
-    client.execute(f"""SET allow_experimental_vector_similarity_index = 1;""")
-
-    client.execute(
-        f"""ALTER TABLE {database}.{table}
-            ADD INDEX {index_name} {vector_column} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1;
-        """
-    )
-
-
-"""Generates a vector"""
-
-
-def generate_vector(low, high, size):
-    vector = np.random.uniform(low=low, high=high, size=size).tolist()
-    return vector
-
-
-"""Calculating the Euclidean distance in an SQL query"""
-
-
-def similar_vectors(
-    client, input_vector, database, table, id_column, vector_column, count
-):
-    try:
-        vector_str = "[" + ",".join(map(str, input_vector)) + "]"
-        result = client.execute(
-            f"""
-            WITH {vector_str} AS reference_vector
-             SELECT 
-                {id_column}, 
-                L2Distance({vector_column}, reference_vector) AS distance
-            FROM {database}.{table}
-            ORDER BY distance
-            LIMIT {count}"""
-        )
-        logging.error("Query executed successfully")
-        return result
-    except Exception as e:
-        logging.error(f"Error executing query: {e}")
-        return []
-
-
-def print_similar_vectors(similar_vectors):
-    logging.error("Similar vectors:")
-    if similar_vectors:
-        for vector in similar_vectors:
-            doc_id = vector[0]
-            distance = vector[1]
-            logging.error(f"ID: {doc_id}, Distance: {distance:.2f}")
-    else:
-        print("No similar vectors found.")
 
 
 if __name__ == "__main__":
