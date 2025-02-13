@@ -1,105 +1,148 @@
 import logging
 import argparse
 from clickhouse_driver import Client, errors
+from typing import Set
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def create_db(
-    client: Client, database_name: str, table_name: str, ids: str, vectors: str
-) -> None:
+class Queries:
     """
-    Creates a database and table in ClickHouse if they do not exist.
+    A class containing SQL queries as reusable constants.
 
-    :param client: ClickHouse client instance.
-    :param database_name: Name of the database.
-    :param table_name: Name of the table.
-    :param ids: Attribute name for identifiers.
-    :param vectors: Attribute name for vector data.
+    This class defines parameterized SQL queries for creating databases and tables,
+    as well as checking their existence in ClickHouse.
     """
 
-    try:
-        client.execute(f"""CREATE DATABASE IF NOT EXISTS {database_name}""")
-        logging.warning("The database has been created successfully")
+    CREATE_DATABASE: str = "CREATE DATABASE IF NOT EXISTS {database}"
+    """SQL query to create a database if it does not exist."""
 
-        client.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS {database_name}.{table_name}
-            (
-                {ids} UUID,
-                {vectors} Array(Float64)
-                INDEX idx {vectors} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1
-            )
-            ENGINE = MergeTree()
-            ORDER BY {ids}
-        """
+    CREATE_TABLE: str = """
+        CREATE TABLE IF NOT EXISTS {database}.{table}
+        (
+            {ids} UUID,
+            {vectors} Array(Float64)
+            INDEX idx {vectors} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1
         )
-        logging.warning("The table was created successfully")
-
-    except Exception as e:
-        logging.error(f"Creation error: {e}.")
-
-
-def check_db(
-    client: Client, database_name: str, table_name: str, ids: str, vectors: str
-) -> bool:
+        ENGINE = MergeTree()
+        ORDER BY {ids}
     """
-    Checks if the database and table exist. Creates them if necessary.
+    """SQL query to create a table with a vector similarity index."""
 
-    :param client: ClickHouse client instance.
-    :param database_name: Name of the database.
-    :param table_name: Name of the table.
-    :param ids: Attribute name for identifiers.
-    :param vectors: Attribute name for vector data.
-    :return: True if the database and table exist (or were successfully created), otherwise False.
+    SHOW_DATABASES: str = "SHOW DATABASES"
+    """SQL query to list all databases."""
+
+    SHOW_TABLES: str = "SHOW TABLES FROM {database}"
+    """SQL query to list all tables in a given database."""
+
+
+class ClickHouseManager:
+    """
+    A class for managing connections and database operations in ClickHouse.
+
+    This class provides methods for creating databases and tables, checking their existence,
+    and ensuring a stable connection to ClickHouse.
     """
 
-    databases = {db[0] for db in client.execute("SHOW DATABASES")}
-    tables = {
-        table[0] for table in client.execute(f"SHOW TABLES FROM {database_name}")
-    }
+    def __init__(self, host: str, port: int, user: str, password: str, database: str) -> None:
+        """Initializes a connection to ClickHouse
+        :param host: The ClickHouse server host.
+        :param port: The ClickHouse server port.
+        :param user: The username for authentication.
+        :param password: The password for authentication.
+        :param database: The name of the database to work with.
+        """
+        try:
+            self.client = Client(host=host, port=port, user=user, password=password)
+            self.database = database
+            logger.info("Connected to ClickHouse successfully.")
+        except errors.ServerException as e:
+            logger.error(f"Failed to connect to ClickHouse: {e}")
+            raise
 
-    if database_name not in databases:
-        logging.error(f'Database "{database_name}" does not exist, creating it.')
-        create_db(client, database_name, table_name, ids, vectors)
-        return False
+    def create_db(self, table_name: str, ids: str, vectors: str) -> None:
+        """
+        Creates a database and table if they do not exist.
 
-    if table_name not in tables:
-        create_db(client, database_name, table_name, ids, vectors)
-        return False
+        :param table_name: The name of the table to create.
+        :param ids: The column name for unique identifiers.
+        :param vectors: The column name for storing vector data.
+        """
+        try:
+            self.client.execute(Queries.CREATE_DATABASE.format(database=self.database))
+            logger.info(f"Database '{self.database}' created or already exists.")
 
-    logging.warning(f'Database "{database_name}" and table "{table_name}" exist.')
-    return True
+            self.client.execute(
+                Queries.CREATE_TABLE.format(
+                    database=self.database, table=table_name, ids=ids, vectors=vectors
+                )
+            )
+            logger.info(f"Table '{table_name}' in database '{self.database}' created or already exists.")
+        except Exception as e:
+            logger.error(f"Error creating database or table: {e}")
 
+    def check_db(self, table_name: str, ids: str, vectors: str) -> bool:
+        """
+        Checks if the database and table exist. If not, they are created.
+
+        :param table_name: The name of the table to check.
+        :param ids: The column name for unique identifiers.
+        :param vectors: The column name for storing vector data.
+        :return: True if the database and table exist (or were successfully created), otherwise False.
+        """
+        try:
+
+            databases: Set[str] = {db[0] for db in self.client.execute(Queries.SHOW_DATABASES)}
+
+            if self.database not in databases:
+                logger.warning(f"Database '{self.database}' does not exist. Creating it...")
+                self.create_db(table_name, ids, vectors)
+                return False
+
+
+            tables: Set[str] = {table[0] for table in self.client.execute(Queries.SHOW_TABLES.format(database=self.database))}
+
+            if table_name not in tables:
+                logger.warning(f"Table '{table_name}' does not exist. Creating it...")
+                self.create_db(table_name, ids, vectors)
+                return False
+
+            logger.info(f"Database '{self.database}' and table '{table_name}' exist.")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error checking database/table existence: {e}")
+            return False
 
 
 def main() -> None:
     """
-    Main function that establishes a connection to ClickHouse,checks the database and table, and waits for the model file to appear.
+    The main function that connects to ClickHouse and verifies the existence of the database and table.
+
+    It reads parameters from the command line, establishes a connection, and checks if the database
+    and table exist, creating them if necessary.
     """
+    parser = argparse.ArgumentParser(description="ClickHouse Connection")
 
-    parser = argparse.ArgumentParser(description="Connecting to the server")
-
-    parser.add_argument("--host", default="localhost", help="Host")
-    parser.add_argument("--port", type=int, default=9000, help="Port")
-    parser.add_argument("-u", "--user", default="default", help="User")
-    parser.add_argument("-p", "--password", default="", help="Password")
-    parser.add_argument("--database", default="db_master", help="Name of the database")
+    parser.add_argument("--host", default="localhost", help="ClickHouse server host")
+    parser.add_argument("--port", type=int, default=9000, help="ClickHouse server port")
+    parser.add_argument("-u", "--user", default="default", help="ClickHouse username")
+    parser.add_argument("-p", "--password", default="", help="ClickHouse password")
+    parser.add_argument("--database", default="db_master", help="Database name")
     parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--ids", default="doc_id", help="Id database attribute")
-    parser.add_argument(
-        "--vectors", default="centroid", help="The vector database attribute"
-    )
+    parser.add_argument("--ids", default="doc_id", help="Column name for unique identifiers")
+    parser.add_argument("--vectors", default="centroid", help="Column name for vector data")
 
     args = parser.parse_args()
 
     try:
-        client = Client(
-            host=args.host, port=args.port, user=args.user, password=args.password
+        manager = ClickHouseManager(
+            host=args.host, port=args.port, user=args.user, password=args.password, database=args.database
         )
-        logging.warning("Connection successful")
-        check_db(client, args.database, args.table, args.ids, args.vectors)
-
-    except errors.ServerException as e:
-        logging.error(f"Error connecting to ClickHouse: {e}.")
+        manager.check_db(args.table, args.ids, args.vectors)
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":

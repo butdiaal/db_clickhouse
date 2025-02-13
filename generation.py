@@ -4,74 +4,96 @@ import logging
 import argparse
 import json
 import uuid
+from typing import List, Dict, Set
 
 
-def save_to_json(elements: List[Dict[str, object]], file_output: str) -> None:
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class JSONSaver:
     """
-    Saves generated elements (UUIDs with vectors) to a JSON file.
-
-    :param elements: List of dictionaries containing UUIDs and vectors.
-    :param file_output: File path to save the JSON data.
+    A utility class for saving generated elements to a JSON file.
     """
-    with open(file_output, "w") as json_file:
-        json.dump(elements, json_file, indent=4)
+
+    @staticmethod
+    def save(elements: List[Dict[str, object]], file_output: str) -> None:
+        """
+        Saves a list of UUIDs and vectors to a JSON file.
+
+        :param elements: A list of dictionaries, each containing a UUID and a vector.
+        :param file_output: The file path where the JSON data should be saved.
+        """
+        try:
+            with open(file_output, "w") as json_file:
+                json.dump(elements, json_file, indent=4)
+            logger.info(f"Vectors have been successfully saved to '{file_output}'.")
+        except Exception as e:
+            logger.error(f"Error saving JSON file: {e}")
 
 
-def generate(low: float, high: float, size: int, count: int) -> List[Dict[str, object]]:
+class VectorGenerator:
     """
-    Generates a list of elements, each containing a random UUID and a vector.
+    A class for generating random UUIDs and vectors.
 
-    :param low: Lower limit for vector values.
-    :param high: Upper limit for vector values.
-    :param size: Dimension of each vector.
-    :param count: Number of vectors to generate.
-    :return: A list of dictionaries containing UUIDs and vectors.
+    This class generates a specified number of vectors, each associated with a unique UUID.
     """
-    existing_uuids = set()
 
-    elements = []
-    for i in range(count):
+    def __init__(self, low: float, high: float, size: int, count: int) -> None:
+        """
+        Initializes the generator with given parameters.
 
-        while True:
-            id_uuid = str(uuid.uuid4())
-            if id_uuid not in existing_uuids:
-                existing_uuids.add(id_uuid)
-                break
+        :param low: The lower limit for the vector values.
+        :param high: The upper limit for the vector values.
+        :param size: The dimension of each vector.
+        :param count: The number of vectors to generate.
+        """
+        self.low = low
+        self.high = high
+        self.size = size
+        self.count = count
 
-        vector = np.random.uniform(low=low, high=high, size=size).tolist()
+    def generate(self) -> List[Dict[str, object]]:
+        """
+        Generates a list of elements, each containing a random UUID and a vector.
 
-        elements.append({"id": id_uuid, "vector": vector})
+        :return: A list of dictionaries containing UUIDs and vectors.
+        """
+        existing_uuids: Set[str] = set()
+        elements: List[Dict[str, object]] = []
 
-    return elements
+        for _ in range(self.count):
+            while True:
+                id_uuid = str(uuid.uuid4())
+                if id_uuid not in existing_uuids:
+                    existing_uuids.add(id_uuid)
+                    break
+
+            vector = np.random.uniform(low=self.low, high=self.high, size=self.size).tolist()
+            elements.append({"id": id_uuid, "vector": vector})
+
+        logger.info(f"Generated {self.count} vectors with dimension {self.size}.")
+        return elements
 
 
 def main() -> None:
     """
-    Parses command-line arguments, generates random vectors, waits for a specified file, and saves the vectors to a file.
+    Parses command-line arguments, generates random vectors, and saves them to a JSON file.
     """
-    parser = argparse.ArgumentParser(description="Generation")
+    parser = argparse.ArgumentParser(description="Vector Generation")
 
-    parser.add_argument(
-        "--low", type=float, default=0.0, help="The lower limit of the range"
-    )
-    parser.add_argument(
-        "--high", type=float, default=1.0, help="Upper limit of the range"
-    )
+    parser.add_argument("--low", type=float, default=0.0, help="Lower limit of the range")
+    parser.add_argument("--high", type=float, default=1.0, help="Upper limit of the range")
     parser.add_argument("--size", type=int, default=512, help="The size of each vector")
-    parser.add_argument("--count", type=int, default=20000, help="Number of vectors")
-    parser.add_argument(
-        "--file_output",
-        type=str,
-        default="elements.json",
-        help="The name of the file for saving vectors",
-    )
+    parser.add_argument("--count", type=int, default=20000, help="Number of vectors to generate")
+    parser.add_argument("--file_output", type=str, default="elements.json", help="Output file name for saving vectors")
 
     args = parser.parse_args()
 
-    elements = generate(args.low, args.high, args.size, args.count)
-    save_to_json(elements, args.file_output)
+    generator = VectorGenerator(args.low, args.high, args.size, args.count)
+    elements = generator.generate()
 
-    logging.warning(f"Vectors have been successfully saved to a file {args.file_output}")
+    JSONSaver.save(elements, args.file_output)
 
 
 if __name__ == "__main__":
