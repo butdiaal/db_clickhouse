@@ -16,7 +16,6 @@ class Queries:
     """
 
     CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS {database}"
-    """SQL query to create a database if it does not exist."""
 
     CREATE_TABLE = """
         CREATE TABLE IF NOT EXISTS {database}.{table}
@@ -28,13 +27,10 @@ class Queries:
         ENGINE = MergeTree()
         ORDER BY {ids}
     """
-    """SQL query to create a table with a vector similarity index."""
 
     SHOW_DATABASES = "SHOW DATABASES"
-    """SQL query to list all databases."""
 
     SHOW_TABLES = "SHOW TABLES FROM {database}"
-    """SQL query to list all tables in a given database."""
 
 
 class ClickHouseManager:
