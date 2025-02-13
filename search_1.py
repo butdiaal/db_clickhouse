@@ -12,9 +12,6 @@ logging.basicConfig(level=logging.INFO)
 class Queries:
     """
     A collection of SQL queries for ClickHouse operations.
-
-    Constants:
-        SELECT_VECTORS (str): Query to select vector data from the database.
     """
 
     SELECT_VECTORS: str = "SELECT {ids}, {vectors} FROM {database}.{table}"
