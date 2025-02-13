@@ -15,10 +15,10 @@ class Queries:
     as well as checking their existence in ClickHouse.
     """
 
-    CREATE_DATABASE: str = "CREATE DATABASE IF NOT EXISTS {database}"
+    CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS {database}"
     """SQL query to create a database if it does not exist."""
 
-    CREATE_TABLE: str = """
+    CREATE_TABLE = """
         CREATE TABLE IF NOT EXISTS {database}.{table}
         (
             {ids} UUID,
@@ -30,10 +30,10 @@ class Queries:
     """
     """SQL query to create a table with a vector similarity index."""
 
-    SHOW_DATABASES: str = "SHOW DATABASES"
+    SHOW_DATABASES = "SHOW DATABASES"
     """SQL query to list all databases."""
 
-    SHOW_TABLES: str = "SHOW TABLES FROM {database}"
+    SHOW_TABLES = "SHOW TABLES FROM {database}"
     """SQL query to list all tables in a given database."""
 
 
