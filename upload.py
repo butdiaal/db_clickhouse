@@ -80,7 +80,9 @@ class DatabaseUploader:
             logger.error(f"Error connecting to ClickHouse: {e}")
             raise
 
-    def insert_data(self, database: str, table: str, data: List[Tuple[str, List[float]]]) -> None:
+    def insert_data(
+        self, database: str, table: str, data: List[Tuple[str, List[float]]]
+    ) -> None:
         """
         Inserts data into the specified ClickHouse table.
 
@@ -95,7 +97,9 @@ class DatabaseUploader:
         try:
             query = Queries.INSERT_DATA.format(database=database, table=table)
             self.client.execute(query, data)
-            logger.info(f"Successfully inserted {len(data)} records into '{database}.{table}'.")
+            logger.info(
+                f"Successfully inserted {len(data)} records into '{database}.{table}'."
+            )
         except errors.ServerException as e:
             logger.error(f"Error inserting data into ClickHouse: {e}")
 
@@ -116,7 +120,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--table", default="element", help="Table name")
     parser.add_argument("--ids", default="doc_id", help="ID column name")
     parser.add_argument("--vectors", default="centroid", help="Vector column name")
-    parser.add_argument("--file_input", type=str, default="elements.json", help="Path to the JSON file")
+    parser.add_argument(
+        "--file_input", type=str, default="elements.json", help="Path to the JSON file"
+    )
 
     return parser.parse_args()
 

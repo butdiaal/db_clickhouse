@@ -69,7 +69,9 @@ class VectorGenerator:
                     existing_uuids.add(id_uuid)
                     break
 
-            vector = np.random.uniform(low=self.low, high=self.high, size=self.size).tolist()
+            vector = np.random.uniform(
+                low=self.low, high=self.high, size=self.size
+            ).tolist()
             elements.append({"id": id_uuid, "vector": vector})
 
         logger.info(f"Generated {self.count} vectors with dimension {self.size}.")
@@ -82,11 +84,22 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(description="Vector Generation")
 
-    parser.add_argument("--low", type=float, default=0.0, help="Lower limit of the range")
-    parser.add_argument("--high", type=float, default=1.0, help="Upper limit of the range")
+    parser.add_argument(
+        "--low", type=float, default=0.0, help="Lower limit of the range"
+    )
+    parser.add_argument(
+        "--high", type=float, default=1.0, help="Upper limit of the range"
+    )
     parser.add_argument("--size", type=int, default=512, help="The size of each vector")
-    parser.add_argument("--count", type=int, default=20000, help="Number of vectors to generate")
-    parser.add_argument("--file_output", type=str, default="elements.json", help="Output file name for saving vectors")
+    parser.add_argument(
+        "--count", type=int, default=20000, help="Number of vectors to generate"
+    )
+    parser.add_argument(
+        "--file_output",
+        type=str,
+        default="elements.json",
+        help="Output file name for saving vectors",
+    )
 
     args = parser.parse_args()
 

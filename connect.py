@@ -45,7 +45,9 @@ class ClickHouseManager:
     and ensuring a stable connection to ClickHouse.
     """
 
-    def __init__(self, host: str, port: int, user: str, password: str, database: str) -> None:
+    def __init__(
+        self, host: str, port: int, user: str, password: str, database: str
+    ) -> None:
         """Initializes a connection to ClickHouse
         :param host: The ClickHouse server host.
         :param port: The ClickHouse server port.
@@ -78,7 +80,9 @@ class ClickHouseManager:
                     database=self.database, table=table_name, ids=ids, vectors=vectors
                 )
             )
-            logger.info(f"Table '{table_name}' in database '{self.database}' created or already exists.")
+            logger.info(
+                f"Table '{table_name}' in database '{self.database}' created or already exists."
+            )
         except Exception as e:
             logger.error(f"Error creating database or table: {e}")
 
@@ -93,15 +97,23 @@ class ClickHouseManager:
         """
         try:
 
-            databases: Set[str] = {db[0] for db in self.client.execute(Queries.SHOW_DATABASES)}
+            databases: Set[str] = {
+                db[0] for db in self.client.execute(Queries.SHOW_DATABASES)
+            }
 
             if self.database not in databases:
-                logger.warning(f"Database '{self.database}' does not exist. Creating it...")
+                logger.warning(
+                    f"Database '{self.database}' does not exist. Creating it..."
+                )
                 self.create_db(table_name, ids, vectors)
                 return False
 
-
-            tables: Set[str] = {table[0] for table in self.client.execute(Queries.SHOW_TABLES.format(database=self.database))}
+            tables: Set[str] = {
+                table[0]
+                for table in self.client.execute(
+                    Queries.SHOW_TABLES.format(database=self.database)
+                )
+            }
 
             if table_name not in tables:
                 logger.warning(f"Table '{table_name}' does not exist. Creating it...")
@@ -131,14 +143,22 @@ def main() -> None:
     parser.add_argument("-p", "--password", default="", help="ClickHouse password")
     parser.add_argument("--database", default="db_master", help="Database name")
     parser.add_argument("--table", default="element", help="Table name")
-    parser.add_argument("--ids", default="doc_id", help="Column name for unique identifiers")
-    parser.add_argument("--vectors", default="centroid", help="Column name for vector data")
+    parser.add_argument(
+        "--ids", default="doc_id", help="Column name for unique identifiers"
+    )
+    parser.add_argument(
+        "--vectors", default="centroid", help="Column name for vector data"
+    )
 
     args = parser.parse_args()
 
     try:
         manager = ClickHouseManager(
-            host=args.host, port=args.port, user=args.user, password=args.password, database=args.database
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+            database=args.database,
         )
         manager.check_db(args.table, args.ids, args.vectors)
     except Exception as e:

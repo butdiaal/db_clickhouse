@@ -7,7 +7,6 @@ from clickhouse_driver import Client, errors
 from typing import List, Dict, Tuple, Optional
 
 
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -15,6 +14,7 @@ class Queries:
     """
     A class that stores SQL queries as constants.
     """
+
     GET_VECTORS = "SELECT {ids}, {vectors} FROM {database}.{table}"
 
 
@@ -35,7 +35,9 @@ class ClickHouseRepository:
         self.database = database
         logging.info("Successfully connected to ClickHouse.")
 
-    def get_vectors(self, table: str, ids: str, vectors: str) -> Optional[Dict[str, np.ndarray]]:
+    def get_vectors(
+        self, table: str, ids: str, vectors: str
+    ) -> Optional[Dict[str, np.ndarray]]:
         """
         Retrieves vector data from the ClickHouse database.
 
@@ -44,7 +46,9 @@ class ClickHouseRepository:
         :param vectors: The column name containing vector data.
         :return: A dictionary mapping document IDs to NumPy vector arrays.
         """
-        query = Queries.GET_VECTORS.format(database=self.database, table=table, ids=ids, vectors=vectors)
+        query = Queries.GET_VECTORS.format(
+            database=self.database, table=table, ids=ids, vectors=vectors
+        )
 
         try:
             result = self.client.execute(query)
@@ -77,7 +81,9 @@ class VectorSearcher:
         self.index = faiss.IndexFlatL2(self.db_vectors.shape[1])
         self.index.add(self.db_vectors)
 
-    def search_similar(self, input_vectors: List[List[float]], count: int) -> Dict[int, List[Tuple[str, float]]]:
+    def search_similar(
+        self, input_vectors: List[List[float]], count: int
+    ) -> Dict[int, List[Tuple[str, float]]]:
         """
         Searches for the most similar vectors using FAISS.
 
@@ -94,12 +100,16 @@ class VectorSearcher:
 
             distances = np.sqrt(distances)
 
-            similar_vectors[idx] = [(self.doc_ids[indices[0][i]], distances[0][i]) for i in range(count)]
+            similar_vectors[idx] = [
+                (self.doc_ids[indices[0][i]], distances[0][i]) for i in range(count)
+            ]
 
         return similar_vectors
 
     @staticmethod
-    def print_similar_vectors(similar_vectors: Dict[int, List[Tuple[str, float]]]) -> None:
+    def print_similar_vectors(
+        similar_vectors: Dict[int, List[Tuple[str, float]]],
+    ) -> None:
         """
         Logs the results of similar vector searches.
 
@@ -137,12 +147,23 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=9000, help="ClickHouse port")
     parser.add_argument("-u", "--user", default="default", help="ClickHouse username")
     parser.add_argument("-p", "--password", default="", help="ClickHouse password")
-    parser.add_argument("--database", default="db_master", help="ClickHouse database name")
+    parser.add_argument(
+        "--database", default="db_master", help="ClickHouse database name"
+    )
     parser.add_argument("--table", default="element", help="ClickHouse table name")
     parser.add_argument("--ids", default="doc_id", help="Column name for document IDs")
-    parser.add_argument("--vectors", default="centroid", help="Column name for vector data")
-    parser.add_argument("--count", type=int, default=10, help="Number of similar vectors to retrieve")
-    parser.add_argument("--file", type=str, default="test.json", help="Path to input JSON file with vectors")
+    parser.add_argument(
+        "--vectors", default="centroid", help="Column name for vector data"
+    )
+    parser.add_argument(
+        "--count", type=int, default=10, help="Number of similar vectors to retrieve"
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        default="test.json",
+        help="Path to input JSON file with vectors",
+    )
 
     return parser.parse_args()
 
@@ -158,7 +179,11 @@ def main() -> None:
 
     try:
         db = ClickHouseRepository(
-            host=args.host, port=args.port, user=args.user, password=args.password, database=args.database
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+            database=args.database,
         )
 
         vectors_db = db.get_vectors(args.table, args.ids, args.vectors)

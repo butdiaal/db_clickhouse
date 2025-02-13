@@ -13,6 +13,7 @@ class Queries:
     """
     A class that stores SQL queries as constants.
     """
+
     SEARCH_SIMILAR = """
         WITH {vector} AS reference_vector
         SELECT {id_column}, L2Distance({vector_column}, reference_vector) AS distance
@@ -35,17 +36,17 @@ class ClickHouseRepository:
         :param password: The password for authentication.
         :param database: The name of the database to work with.
         """
-        self.client = Client(
-            host=host,
-            port=port,
-            user=user,
-            password=password
-        )
+        self.client = Client(host=host, port=port, user=user, password=password)
         self.database = database
         logging.info("Successfully connected to ClickHouse.")
 
     def search_similar_vectors(
-        self, input_vectors: List[List[float]], table: str, id_column: str, vector_column: str, count: int
+        self,
+        input_vectors: List[List[float]],
+        table: str,
+        id_column: str,
+        vector_column: str,
+        count: int,
     ) -> List[Tuple[int, List[Tuple[str, float]]]]:
         """
         Finds the most similar vectors using the L2 (Euclidean) distance function in ClickHouse.
@@ -71,7 +72,7 @@ class ClickHouseRepository:
                     table=table,
                     id_column=id_column,
                     vector_column=vector_column,
-                    count=count
+                    count=count,
                 )
 
                 result = self.client.execute(query)
@@ -91,7 +92,9 @@ class VectorUtils:
     """
 
     @staticmethod
-    def print_similar_vectors(similar_vectors: List[Tuple[int, List[Tuple[str, float]]]]) -> None:
+    def print_similar_vectors(
+        similar_vectors: List[Tuple[int, List[Tuple[str, float]]]],
+    ) -> None:
         """
         Logs the results of similar vector searches.
 
@@ -124,18 +127,31 @@ def parse_arguments() -> argparse.Namespace:
 
     :return: Parsed arguments as a namespace object.
     """
-    parser = argparse.ArgumentParser(description="Vector Similarity Search with ClickHouse")
+    parser = argparse.ArgumentParser(
+        description="Vector Similarity Search with ClickHouse"
+    )
 
     parser.add_argument("--host", default="localhost", help="ClickHouse host")
     parser.add_argument("--port", type=int, default=9000, help="ClickHouse port")
     parser.add_argument("-u", "--user", default="default", help="ClickHouse username")
     parser.add_argument("-p", "--password", default="", help="ClickHouse password")
-    parser.add_argument("--database", default="db_master", help="ClickHouse database name")
+    parser.add_argument(
+        "--database", default="db_master", help="ClickHouse database name"
+    )
     parser.add_argument("--table", default="element", help="ClickHouse table name")
     parser.add_argument("--ids", default="doc_id", help="Column name for document IDs")
-    parser.add_argument("--vectors", default="centroid", help="Column name for vector data")
-    parser.add_argument("--count", type=int, default=10, help="Number of similar vectors to retrieve")
-    parser.add_argument("--file", type=str, default="test.json", help="Path to input JSON file with vectors")
+    parser.add_argument(
+        "--vectors", default="centroid", help="Column name for vector data"
+    )
+    parser.add_argument(
+        "--count", type=int, default=10, help="Number of similar vectors to retrieve"
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        default="test.json",
+        help="Path to input JSON file with vectors",
+    )
 
     return parser.parse_args()
 
@@ -152,10 +168,16 @@ def main() -> None:
     try:
 
         db = ClickHouseRepository(
-            host=args.host, port=args.port, user=args.user, password=args.password, database=args.database
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+            database=args.database,
         )
 
-        similar_vectors = db.search_similar_vectors(input_vectors, args.table, args.ids, args.vectors, args.count)
+        similar_vectors = db.search_similar_vectors(
+            input_vectors, args.table, args.ids, args.vectors, args.count
+        )
 
         VectorUtils.print_similar_vectors(similar_vectors)
 
