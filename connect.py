@@ -4,7 +4,6 @@ from clickhouse_driver import Client, errors
 from typing import Set
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class Queries:
@@ -54,9 +53,9 @@ class ClickHouseManager:
         try:
             self.client = Client(host=host, port=port, user=user, password=password)
             self.database = database
-            logger.info("Connected to ClickHouse successfully.")
+            logging.info("Connected to ClickHouse successfully.")
         except errors.ServerException as e:
-            logger.error(f"Failed to connect to ClickHouse: {e}")
+            logging.error(f"Failed to connect to ClickHouse: {e}")
             raise
 
     def create_db(self, table_name: str, ids: str, vectors: str) -> None:
@@ -69,18 +68,18 @@ class ClickHouseManager:
         """
         try:
             self.client.execute(Queries.CREATE_DATABASE.format(database=self.database))
-            logger.info(f"Database '{self.database}' created or already exists.")
+            logging.info(f"Database '{self.database}' created or already exists.")
 
             self.client.execute(
                 Queries.CREATE_TABLE.format(
                     database=self.database, table=table_name, ids=ids, vectors=vectors
                 )
             )
-            logger.info(
+            logging.info(
                 f"Table '{table_name}' in database '{self.database}' created or already exists."
             )
         except Exception as e:
-            logger.error(f"Error creating database or table: {e}")
+            logging.error(f"Error creating database or table: {e}")
 
     def check_db(self, table_name: str, ids: str, vectors: str) -> bool:
         """
@@ -98,7 +97,7 @@ class ClickHouseManager:
             }
 
             if self.database not in databases:
-                logger.warning(
+                logging.warning(
                     f"Database '{self.database}' does not exist. Creating it..."
                 )
                 self.create_db(table_name, ids, vectors)
@@ -112,15 +111,15 @@ class ClickHouseManager:
             }
 
             if table_name not in tables:
-                logger.warning(f"Table '{table_name}' does not exist. Creating it...")
+                logging.warning(f"Table '{table_name}' does not exist. Creating it...")
                 self.create_db(table_name, ids, vectors)
                 return False
 
-            logger.info(f"Database '{self.database}' and table '{table_name}' exist.")
+            logging.info(f"Database '{self.database}' and table '{table_name}' exist.")
             return True
 
         except Exception as e:
-            logger.error(f"Error checking database/table existence: {e}")
+            logging.error(f"Error checking database/table existence: {e}")
             return False
 
 
@@ -158,7 +157,7 @@ def main() -> None:
         )
         manager.check_db(args.table, args.ids, args.vectors)
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":
