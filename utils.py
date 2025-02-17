@@ -21,16 +21,16 @@ class Queries:
         """
     ADD_INDEX_L2 = """
             ALTER TABLE {database}.{table} 
-            ADD INDEX idx_l2
-            {vectors} TYPE vector_similarity('hnsw', 'L2Distance') 
+            ADD INDEX idx_l2 {vectors} 
+            TYPE vector_similarity('hnsw', 'L2Distance') 
             GRANULARITY 1
         """
     ADD_INDEX_cosine = """
-                ALTER TABLE {database}.{table} 
-                ADD INDEX idx_cosine
-                {vectors} TYPE vector_similarity('hnsw', 'cosineDistance') 
-                GRANULARITY 1
-            """
+            ALTER TABLE {database}.{table} 
+            ADD INDEX idx_cosine {vectors} 
+            TYPE vector_similarity('hnsw', 'cosineDistance') 
+            GRANULARITY 1
+        """
 
     SHOW_DATABASES = "SHOW DATABASES"
     SHOW_TABLES = "SHOW TABLES FROM {database}"
@@ -42,12 +42,12 @@ class Queries:
     GET_VECTORS = "SELECT {ids}, {vectors} FROM {database}.{table}"
 
     SEARCH_SIMILAR_L2Distance = """
-        WITH {vector} AS reference_vector
-        SELECT {id_column}, L2Distance({vector_column}, reference_vector) AS distance
-        FROM {database}.{table}
-        ORDER BY distance
-        LIMIT {count}
-    """
+            WITH {vector} AS reference_vector
+            SELECT {id_column}, L2Distance({vector_column}, reference_vector) AS distance
+            FROM {database}.{table}
+            ORDER BY distance
+            LIMIT {count}
+        """
 
     SEARCH_SIMILAR_cosineDistance = """
             WITH {vector} AS reference_vector
