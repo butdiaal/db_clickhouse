@@ -92,7 +92,6 @@ class VectorSearcher:
         return similar_vectors
 
 
-
 def parse_arguments() -> argparse.Namespace:
     """
     Parses command-line arguments.
@@ -123,6 +122,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Path to input JSON file with vectors",
     )
     return parser.parse_args()
+
 
 def main() -> None:
     """

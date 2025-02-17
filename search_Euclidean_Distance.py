@@ -95,7 +95,6 @@ class VectorSearcher:
         return similar_vectors
 
 
-
 def parse_arguments() -> argparse.Namespace:
     """
     Parses command-line arguments.

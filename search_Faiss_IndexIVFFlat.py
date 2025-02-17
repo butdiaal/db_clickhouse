@@ -51,7 +51,9 @@ class VectorSearcher:
     A class for performing similarity searches using FAISS.
     """
 
-    def __init__(self, vectors_index: Dict[str, np.ndarray], nlist: int = 100, nprobe: int = 100):
+    def __init__(
+        self, vectors_index: Dict[str, np.ndarray], nlist: int = 100, nprobe: int = 100
+    ):
         """
         Initializes the FAISS index using IndexIVFFlat.
 
@@ -67,16 +69,12 @@ class VectorSearcher:
 
         d = self.db_vectors.shape[1]
 
-
         quantizer = faiss.IndexFlatL2(d)
         self.index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
 
-
         self.index.train(self.db_vectors)
 
-
         self.index.add(self.db_vectors)
-
 
         self.index.nprobe = nlist
 
@@ -105,7 +103,6 @@ class VectorSearcher:
             ]
 
         return similar_vectors
-
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -138,6 +135,7 @@ def parse_arguments() -> argparse.Namespace:
         help="Path to input JSON file with vectors",
     )
     return parser.parse_args()
+
 
 def main() -> None:
     """

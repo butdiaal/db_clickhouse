@@ -4,10 +4,12 @@ import argparse
 from clickhouse_driver import Client
 from typing import List, Dict, Tuple
 
+
 class Queries:
     """
     A collection of SQL queries for ClickHouse operations.
     """
+
     CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS {database}"
     SET_EXPETEMENTAL = """SET allow_experimental_vector_similarity_index = 1"""
     CREATE_TABLE = """
@@ -57,6 +59,7 @@ class Queries:
             LIMIT {count}
         """
 
+
 class ClickHouseConnection:
     """
     A class for managing ClickHouse connection.
@@ -70,6 +73,7 @@ class ClickHouseConnection:
     def get_client(self) -> Client:
         return self.client
 
+
 class VectorUtils:
     """
     A utility class for handling vectors.
@@ -77,7 +81,7 @@ class VectorUtils:
 
     @staticmethod
     def print_similar_vectors(
-            similar_vectors: Dict[int, List[Tuple[str, float]]],
+        similar_vectors: Dict[int, List[Tuple[str, float]]],
     ) -> None:
         """
         Logs the results of similar vector searches.
@@ -102,5 +106,3 @@ class VectorUtils:
             data = json.load(f)
 
         return [item["vector"] for item in data]
-
-
