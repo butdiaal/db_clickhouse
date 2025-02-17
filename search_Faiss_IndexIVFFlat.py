@@ -67,22 +67,22 @@ class VectorSearcher:
             raise ValueError("Vector index is empty.")
 
         self.doc_ids = np.array(list(vectors_index.keys()))
-        self.db_vectors = np.array(list(vectors_index.values()), dtype="float32")  # FAISS uses float32
+        self.db_vectors = np.array(list(vectors_index.values()), dtype="float64")
 
-        d = self.db_vectors.shape[1]  # Dimensionality of vectors
+        d = self.db_vectors.shape[1]
 
-        # Create an IVFFlat index
-        quantizer = faiss.IndexFlatL2(d)  # Quantizer used for clustering
+
+        quantizer = faiss.IndexFlatL2(d)
         self.index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
 
-        # Train the index on a subset of the data
+
         self.index.train(self.db_vectors)
 
-        # Add vectors to the index
+
         self.index.add(self.db_vectors)
 
-        # Set nprobe to nlist to search all clusters
-        self.index.nprobe = nlist  # Ensures all clusters are searched
+
+        self.index.nprobe = nlist
 
     def search_similar(
         self, input_vectors: List[List[float]], count: int
@@ -102,7 +102,7 @@ class VectorSearcher:
 
             distances, indices = self.index.search(input_vector_np, count)
 
-            distances = np.sqrt(distances)  # Optional: can be removed if you don't want sqrt
+            distances = np.sqrt(distances)
 
             similar_vectors[idx] = [
                 (self.doc_ids[indices[0][i]], distances[0][i]) for i in range(count)
