@@ -48,51 +48,47 @@ class ClickHouseRepository:
 
 class VectorSearcher:
     """
-    A class for performing similarity searches using FAISS.
+    A class for performing similarity searches using FAISS with IndexIVFFlat.
     """
 
-    def __init__(
-        self, vectors_index: Dict[str, np.ndarray], nlist: int = 100, nprobe: int = 100
-    ):
+    def __init__(self, vectors_index: dict):
         """
-        Initializes the FAISS index using IndexIVFFlat.
+        Initializes the FAISS index.
 
         :param vectors_index: A dictionary where keys are document IDs and values are vectors.
-        :param nlist: The number of clusters (higher values make search faster but require tuning).
-        :param nprobe: The number of clusters to search (higher values improve accuracy but slow down search).
         """
         if not vectors_index:
             raise ValueError("Vector index is empty.")
 
         self.doc_ids = np.array(list(vectors_index.keys()))
-        self.db_vectors = np.array(list(vectors_index.values()), dtype="float64")
+        self.db_vectors = np.array(list(vectors_index.values()), dtype=np.float32)
 
         d = self.db_vectors.shape[1]
 
         quantizer = faiss.IndexFlatL2(d)
-        self.index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
+        nlist = 100
+        index_ivf = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
 
-        self.index.train(self.db_vectors)
+        index_ivf.train(self.db_vectors)
 
-        self.index.add(self.db_vectors)
+        index_ivf.add_with_ids(self.db_vectors, np.arange(len(self.db_vectors)))
 
-        self.index.nprobe = nlist
+        self.index = index_ivf
 
     def search_similar(
         self, input_vectors: List[List[float]], count: int
     ) -> Dict[int, List[Tuple[str, float]]]:
         """
-        Performs a nearest-neighbor search using FAISS.
+        Searches for the most similar vectors using FAISS.
 
-        :param input_vectors: A list of input vectors to find similar vectors for.
-        :param count: The number of closest vectors to return.
-        :return: A dictionary where keys are input vector indices,
-                 and values are lists of tuples (document ID, distance).
+        :param input_vectors: A list of input vectors for which to find similar vectors.
+        :param count: The number of similar vectors to return.
+        :return: A dictionary mapping input vector indices to lists of tuples (document ID, distance).
         """
         similar_vectors: Dict[int, List[Tuple[str, float]]] = {}
 
         for idx, input_vector in enumerate(input_vectors):
-            input_vector_np = np.array(input_vector, dtype="float32").reshape(1, -1)
+            input_vector_np = np.array(input_vector, dtype=np.float32).reshape(1, -1)
 
             distances, indices = self.index.search(input_vector_np, count)
 
