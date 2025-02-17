@@ -4,20 +4,9 @@ import os
 import json
 from typing import List, Tuple
 from clickhouse_driver import Client, errors
-
+from utils import Queries, ClickHouseConnection
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-class Queries:
-    """
-    Contains reusable SQL queries for ClickHouse.
-    """
-
-    INSERT_DATA = "INSERT INTO {database}.{table} (doc_id, centroid) VALUES"
-    SELECT_ALL = "SELECT * FROM {database}.{table}"
-    CHECK_TABLE = "SHOW CREATE TABLE {database}.{table}"
 
 
 class FileLoader:
@@ -36,11 +25,11 @@ class FileLoader:
         data_to_load: List[Tuple[str, List[float]]] = []
 
         if not os.path.exists(file_input):
-            logger.error(f"File '{file_input}' does not exist.")
+            logging.error(f"File '{file_input}' does not exist.")
             return data_to_load
 
         if os.path.getsize(file_input) == 0:
-            logger.error(f"File '{file_input}' is empty.")
+            logging.error(f"File '{file_input}' is empty.")
             return data_to_load
 
         try:
@@ -52,9 +41,9 @@ class FileLoader:
                 centroid = element["vector"]
                 data_to_load.append((doc_id, centroid))
 
-            logger.info(f"Loaded {len(data_to_load)} records from '{file_input}'.")
+            logging.info(f"Loaded {len(data_to_load)} records from '{file_input}'.")
         except (json.JSONDecodeError, KeyError) as e:
-            logger.error(f"Error reading JSON file '{file_input}': {e}")
+            logging.error(f"Error reading JSON file '{file_input}': {e}")
 
         return data_to_load
 
@@ -64,21 +53,10 @@ class DatabaseUploader:
     Handles database connection and data insertion into ClickHouse.
     """
 
-    def __init__(self, host: str, port: int, user: str, password: str) -> None:
-        """
-        Initializes the ClickHouse connection.
-
-        :param host: ClickHouse server host.
-        :param port: ClickHouse server port.
-        :param user: ClickHouse username.
-        :param password: ClickHouse password.
-        """
-        try:
-            self.client = Client(host=host, port=port, user=user, password=password)
-            logger.info("Successfully connected to ClickHouse.")
-        except errors.ServerException as e:
-            logger.error(f"Error connecting to ClickHouse: {e}")
-            raise
+    def __init__(self, connection: ClickHouseConnection):
+        """Initializes the repository with an existing ClickHouse connection."""
+        self.client = connection.get_client()
+        self.database = connection.database
 
     def insert_data(
         self, database: str, table: str, data: List[Tuple[str, List[float]]]
@@ -91,17 +69,17 @@ class DatabaseUploader:
         :param data: List of tuples containing document IDs and vector data.
         """
         if not data:
-            logger.error("No data to insert.")
+            logging.error("No data to insert.")
             return
 
         try:
             query = Queries.INSERT_DATA.format(database=database, table=table)
             self.client.execute(query, data)
-            logger.info(
+            logging.info(
                 f"Successfully inserted {len(data)} records into '{database}.{table}'."
             )
         except errors.ServerException as e:
-            logger.error(f"Error inserting data into ClickHouse: {e}")
+            logging.error(f"Error inserting data into ClickHouse: {e}")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -134,15 +112,22 @@ def main() -> None:
     args = parse_arguments()
 
     try:
-        db_uploader = DatabaseUploader(args.host, args.port, args.user, args.password)
-        check_db(db_uploader.client, args.database, args.table, args.ids, args.vectors)
+        connection = ClickHouseConnection(
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=args.password,
+            database=args.database,
+        )
+
+        db = DatabaseUploader(connection)
 
         data = FileLoader.load(args.file_input)
         if data:
-            db_uploader.insert_data(args.database, args.table, data)
+            db.insert_data(args.database, args.table, data)
 
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":

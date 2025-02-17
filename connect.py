@@ -2,34 +2,9 @@ import logging
 import argparse
 from clickhouse_driver import Client, errors
 from typing import Set
+from utils import Queries, ClickHouseConnection
 
 logging.basicConfig(level=logging.INFO)
-
-
-class Queries:
-    """
-    A class containing SQL queries as reusable constants.
-
-    This class defines parameterized SQL queries for creating databases and tables,
-    as well as checking their existence in ClickHouse.
-    """
-
-    CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS {database}"
-
-    CREATE_TABLE = """
-        CREATE TABLE IF NOT EXISTS {database}.{table}
-        (
-            {ids} UUID,
-            {vectors} Array(Float64)
-            INDEX idx {vectors} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1
-        )
-        ENGINE = MergeTree()
-        ORDER BY {ids}
-    """
-
-    SHOW_DATABASES = "SHOW DATABASES"
-
-    SHOW_TABLES = "SHOW TABLES FROM {database}"
 
 
 class ClickHouseManager:
@@ -40,87 +15,79 @@ class ClickHouseManager:
     and ensuring a stable connection to ClickHouse.
     """
 
-    def __init__(
-        self, host: str, port: int, user: str, password: str, database: str
-    ) -> None:
-        """Initializes a connection to ClickHouse
-        :param host: The ClickHouse server host.
-        :param port: The ClickHouse server port.
-        :param user: The username for authentication.
-        :param password: The password for authentication.
-        :param database: The name of the database to work with.
-        """
-        try:
-            self.client = Client(host=host, port=port, user=user, password=password)
-            self.database = database
-            logging.info("Connected to ClickHouse successfully.")
-        except errors.ServerException as e:
-            logging.error(f"Failed to connect to ClickHouse: {e}")
-            raise
+    def __init__(self, connection: ClickHouseConnection):
+        """Initializes the repository with an existing ClickHouse connection."""
+        self.client = connection.get_client()
+        self.database = connection.database
 
-    def create_db(self, table_name: str, ids: str, vectors: str) -> None:
+    def check_db_exists(self) -> bool:
         """
-        Creates a database and table if they do not exist.
+        Checks if the database exists.
+
+        :return: True if the database exists, False otherwise.
+        """
+        databases = {db[0] for db in self.client.execute(Queries.SHOW_DATABASES)}
+        return self.database in databases
+
+
+    def check_table_exists(self, table_name: str) -> bool:
+        """
+        Checks if a specific table exists in the database.
+
+        :param table_name: The name of the table to check.
+        :return: True if the table exists, False otherwise.
+        """
+        tables = {
+            table[0]
+            for table in self.client.execute(
+                Queries.SHOW_TABLES.format(database=self.database)
+            )
+        }
+        return table_name in tables
+
+    def create_database(self) -> None:
+        """
+        Creates the database if it does not exist.
+        """
+        self.client.execute(Queries.CREATE_DATABASE.format(database=self.database))
+        logging.info(f"Database '{self.database}' created.")
+
+
+    def create_table(self, table_name: str, ids: str, vectors: str) -> None:
+        """
+        Creates a table in the database if it does not exist.
 
         :param table_name: The name of the table to create.
         :param ids: The column name for unique identifiers.
         :param vectors: The column name for storing vector data.
         """
-        try:
-            self.client.execute(Queries.CREATE_DATABASE.format(database=self.database))
-            logging.info(f"Database '{self.database}' created or already exists.")
-
-            self.client.execute(
-                Queries.CREATE_TABLE.format(
-                    database=self.database, table=table_name, ids=ids, vectors=vectors
-                )
+        self.client.execute(
+            Queries.CREATE_TABLE.format(
+                database=self.database, table=table_name, ids=ids, vectors=vectors
             )
-            logging.info(
-                f"Table '{table_name}' in database '{self.database}' created or already exists."
-            )
-        except Exception as e:
-            logging.error(f"Error creating database or table: {e}")
+        )
+        logging.info(f"Table '{table_name}' in database '{self.database}' created.")
 
-    def check_db(self, table_name: str, ids: str, vectors: str) -> bool:
+
+    def ensure_db_and_table(self, table_name: str, ids: str, vectors: str) -> None:
         """
-        Checks if the database and table exist. If not, they are created.
+        Ensures the database and table exist, creating them if necessary.
 
-        :param table_name: The name of the table to check.
+        :param table_name: The name of the table.
         :param ids: The column name for unique identifiers.
         :param vectors: The column name for storing vector data.
-        :return: True if the database and table exist (or were successfully created), otherwise False.
         """
-        try:
+        if not self.check_db_exists():
+            logging.warning(
+                f"Database '{self.database}' does not exist. Creating it..."
+            )
+            self.create_database()
 
-            databases: Set[str] = {
-                db[0] for db in self.client.execute(Queries.SHOW_DATABASES)
-            }
+        if not self.check_table_exists(table_name):
+            logging.warning(f"Table '{table_name}' does not exist. Creating it...")
+            self.create_table(table_name, ids, vectors)
 
-            if self.database not in databases:
-                logging.warning(
-                    f"Database '{self.database}' does not exist. Creating it..."
-                )
-                self.create_db(table_name, ids, vectors)
-                return False
-
-            tables: Set[str] = {
-                table[0]
-                for table in self.client.execute(
-                    Queries.SHOW_TABLES.format(database=self.database)
-                )
-            }
-
-            if table_name not in tables:
-                logging.warning(f"Table '{table_name}' does not exist. Creating it...")
-                self.create_db(table_name, ids, vectors)
-                return False
-
-            logging.info(f"Database '{self.database}' and table '{table_name}' exist.")
-            return True
-
-        except Exception as e:
-            logging.error(f"Error checking database/table existence: {e}")
-            return False
+        logging.info(f"Database '{self.database}' and table '{table_name}' are ready.")
 
 
 def main() -> None:
@@ -148,14 +115,17 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        manager = ClickHouseManager(
+        connection = ClickHouseConnection(
             host=args.host,
             port=args.port,
             user=args.user,
             password=args.password,
             database=args.database,
         )
-        manager.check_db(args.table, args.ids, args.vectors)
+
+        db = ClickHouseManager(connection)
+
+        db.ensure_db_and_table(args.table, args.ids, args.vectors)
     except Exception as e:
         logging.error(f"An error occurred: {e}")
 

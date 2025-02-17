@@ -4,17 +4,10 @@ import argparse
 import numpy as np
 from clickhouse_driver import Client, errors
 from typing import List, Dict, Tuple
+from utils import Queries, VectorUtils, ClickHouseConnection
 
 
 logging.basicConfig(level=logging.INFO)
-
-
-class Queries:
-    """
-    A collection of SQL queries for ClickHouse operations.
-    """
-
-    SELECT_VECTORS: str = "SELECT {ids}, {vectors} FROM {database}.{table}"
 
 
 class ClickHouseRepository:
@@ -23,21 +16,10 @@ class ClickHouseRepository:
 
     """
 
-    def __init__(self, host: str, port: int, user: str, password: str, database: str):
-        """Initializes a connection to ClickHouse
-        :param host: The ClickHouse server host.
-        :param port: The ClickHouse server port.
-        :param user: The username for authentication.
-        :param password: The password for authentication.
-        :param database: The name of the database to work with.
-        """
-        try:
-            self.client = Client(host=host, port=port, user=user, password=password)
-            self.database = database
-            logging.info("Successfully connected to ClickHouse.")
-        except Exception as e:
-            logging.error(f"Error connecting to ClickHouse: {e}")
-            raise
+    def __init__(self, connection: ClickHouseConnection):
+        """Initializes the repository with an existing ClickHouse connection."""
+        self.client = connection.get_client()
+        self.database = connection.database
 
     def get_vectors(self, table: str, ids: str, vectors: str) -> Dict[str, np.ndarray]:
         """
@@ -48,7 +30,7 @@ class ClickHouseRepository:
         :param vectors: The column name containing vector data.
         :return: A dictionary mapping document IDs to NumPy vector arrays.
         """
-        query = Queries.SELECT_VECTORS.format(
+        query = Queries.GET_VECTORS.format(
             database=self.database, table=table, ids=ids, vectors=vectors
         )
 
@@ -112,31 +94,6 @@ class VectorSearcher:
 
         return similar_vectors
 
-    @staticmethod
-    def print_similar_vectors(
-        similar_vectors: Dict[int, List[Tuple[str, float]]],
-    ) -> None:
-        """
-        Logs the results of similar vector searches.
-        :param similar_vectors: A dictionary where keys are input vector indices and values are lists of tuples (document ID, distance).
-        """
-        for index, result in similar_vectors.items():
-            logging.warning(f"Results for the {index + 1}th vector:")
-            for row in result:
-                logging.warning(f"ID: {row[0]}, Distance: {row[1]}")
-
-
-def vectors_from_json(file_path: str) -> List[List[float]]:
-    """
-    Loads input vectors from a JSON file.
-
-    :param file_path: Path to the JSON file.
-    :return: A list of vectors.
-    """
-    with open(file_path, "r") as f:
-        data = json.load(f)
-
-    return [item["vector"] for item in data]
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -179,10 +136,10 @@ def main() -> None:
     """
     args = parse_arguments()
 
-    input_vectors = vectors_from_json(args.file)
+    input_vectors = VectorUtils.vectors_from_json(args.file)
 
     try:
-        db = ClickHouseRepository(
+        connection = ClickHouseConnection(
             host=args.host,
             port=args.port,
             user=args.user,
@@ -190,12 +147,14 @@ def main() -> None:
             database=args.database,
         )
 
+        db = ClickHouseRepository(connection)
+
         vectors_db = db.get_vectors(args.table, args.ids, args.vectors)
 
         searcher = VectorSearcher()
         similar_vectors = searcher.search_similar(vectors_db, input_vectors, args.count)
 
-        searcher.print_similar_vectors(similar_vectors)
+        VectorUtils.print_similar_vectors(similar_vectors)
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")

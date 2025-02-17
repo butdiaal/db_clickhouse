@@ -8,7 +8,6 @@ from typing import List, Dict, Set
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class JSONSaver:
@@ -27,9 +26,9 @@ class JSONSaver:
         try:
             with open(file_output, "w") as json_file:
                 json.dump(elements, json_file, indent=4)
-            logger.info(f"Vectors have been successfully saved to '{file_output}'.")
+            logging.info(f"Vectors have been successfully saved to '{file_output}'.")
         except Exception as e:
-            logger.error(f"Error saving JSON file: {e}")
+            logging.error(f"Error saving JSON file: {e}")
 
 
 class VectorGenerator:
@@ -74,7 +73,7 @@ class VectorGenerator:
             ).tolist()
             elements.append({"id": id_uuid, "vector": vector})
 
-        logger.info(f"Generated {self.count} vectors with dimension {self.size}.")
+        logging.info(f"Generated {self.count} vectors with dimension {self.size}.")
         return elements
 
 
