@@ -61,11 +61,20 @@ class ClickHouseManager:
         :param ids: The column name for unique identifiers.
         :param vectors: The column name for storing vector data.
         """
+        self.client.execute(Queries.SET_EXPETEMENTAL)
+
         self.client.execute(
             Queries.CREATE_TABLE.format(
                 database=self.database, table=table_name, ids=ids, vectors=vectors
             )
         )
+
+        self.client.execute(
+            Queries.ALTER_TABLE.format(
+                database=self.database, table=table_name, ids=ids, vectors=vectors
+            )
+        )
+
         logging.info(f"Table '{table_name}' in database '{self.database}' created.")
 
 
