@@ -24,7 +24,6 @@ def measure_memory_and_time(method: Callable[[], None]) -> Tuple[float, float]:
     return end_time - start_time, mem_usage
 
 
-
 if __name__ == "__main__":
     # Запрашиваем количество запусков
     n_runs = int(input("Введите количество запусков: "))
