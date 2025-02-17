@@ -19,12 +19,18 @@ class Queries:
             ENGINE = MergeTree()
             ORDER BY {ids}
         """
-    ALTER_TABLE = """
+    ADD_INDEX_L2 = """
             ALTER TABLE {database}.{table} 
-            ADD INDEX idx
+            ADD INDEX idx_l2
             {vectors} TYPE vector_similarity('hnsw', 'L2Distance') 
             GRANULARITY 1
         """
+    ADD_INDEX_cosine = """
+                ALTER TABLE {database}.{table} 
+                ADD INDEX idx_cosine
+                {vectors} TYPE vector_similarity('hnsw', 'cosineDistance') 
+                GRANULARITY 1
+            """
 
     SHOW_DATABASES = "SHOW DATABASES"
     SHOW_TABLES = "SHOW TABLES FROM {database}"

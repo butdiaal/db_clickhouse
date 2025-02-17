@@ -70,7 +70,13 @@ class ClickHouseManager:
         )
 
         self.client.execute(
-            Queries.ALTER_TABLE.format(
+            Queries. ADD_INDEX_L2.format(
+                database=self.database, table=table_name, ids=ids, vectors=vectors
+            )
+        )
+
+        self.client.execute(
+            Queries.ADD_INDEX_cosine.format(
                 database=self.database, table=table_name, ids=ids, vectors=vectors
             )
         )
