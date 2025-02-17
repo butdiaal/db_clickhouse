@@ -46,10 +46,6 @@ class ClickHouseRepository:
             return None
 
 
-import faiss
-import numpy as np
-from typing import Dict, List, Tuple
-
 class VectorSearcher:
     """
     A class for performing similarity searches using FAISS.
