@@ -37,7 +37,7 @@ class Queries:
     SHOW_DATABASES = "SHOW DATABASES"
     SHOW_TABLES = "SHOW TABLES FROM {database}"
 
-    INSERT_DATA = "INSERT INTO {database}.{table} (doc_id, centroid) VALUES"
+    INSERT_DATA = "INSERT INTO {database}.{table} ({ids}, {vectors}) VALUES"
     SELECT_ALL = "SELECT * FROM {database}.{table}"
     CHECK_TABLE = "SHOW CREATE TABLE {database}.{table}"
 
