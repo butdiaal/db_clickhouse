@@ -61,7 +61,7 @@ class VectorSearcher:
             raise ValueError("Vector index is empty.")
 
         self.doc_ids = np.array(list(vectors_index.keys()))
-        self.db_vectors = np.array(list(vectors_index.values()), dtype=np.float32)
+        self.db_vectors = np.array(list(vectors_index.values()), dtype=np.float64)
 
         d = self.db_vectors.shape[1]
 
@@ -88,7 +88,7 @@ class VectorSearcher:
         similar_vectors: Dict[int, List[Tuple[str, float]]] = {}
 
         for idx, input_vector in enumerate(input_vectors):
-            input_vector_np = np.array(input_vector, dtype=np.float32).reshape(1, -1)
+            input_vector_np = np.array(input_vector, dtype=np.float64).reshape(1, -1)
 
             distances, indices = self.index.search(input_vector_np, count)
 
