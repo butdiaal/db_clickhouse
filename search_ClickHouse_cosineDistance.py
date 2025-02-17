@@ -44,7 +44,7 @@ class ClickHouseRepository:
         for index, input_vector in enumerate(input_vectors, start=1):
             vector_str = "[" + ",".join(map(str, input_vector)) + "]"
 
-            query = Queries.SEARCH_SIMILAR_L2Distance.format(
+            query = Queries.SEARCH_SIMILAR_cosineDistance.format(
                 vector=vector_str,
                 database=self.database,
                 table=table,
