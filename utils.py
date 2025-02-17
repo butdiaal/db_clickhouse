@@ -9,15 +9,21 @@ class Queries:
     A collection of SQL queries for ClickHouse operations.
     """
     CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS {database}"
+    SET_EXPETEMENTAL = """SET allow_experimental_vector_similarity_index = 1"""
     CREATE_TABLE = """
             CREATE TABLE IF NOT EXISTS {database}.{table}
             (
                 {ids} UUID,
                 {vectors} Array(Float64)
-                INDEX idx {vectors} TYPE vector_similarity('hnsw', 'L2Distance') GRANULARITY 1
             )
             ENGINE = MergeTree()
             ORDER BY {ids}
+        """
+    ALTER_TABLE = """
+            ALTER TABLE {database}.{table} 
+            ADD INDEX idx
+            {vectors} TYPE vector_similarity('hnsw', 'L2Distance') 
+            GRANULARITY 1
         """
 
     SHOW_DATABASES = "SHOW DATABASES"
@@ -29,13 +35,21 @@ class Queries:
 
     GET_VECTORS = "SELECT {ids}, {vectors} FROM {database}.{table}"
 
-    SEARCH_SIMILAR = """
+    SEARCH_SIMILAR_L2Distance = """
         WITH {vector} AS reference_vector
         SELECT {id_column}, L2Distance({vector_column}, reference_vector) AS distance
         FROM {database}.{table}
         ORDER BY distance
         LIMIT {count}
     """
+
+    SEARCH_SIMILAR_cosineDistance = """
+            WITH {vector} AS reference_vector
+            SELECT {id_column}, cosineDistance({vector_column}, reference_vector) AS distance
+            FROM {database}.{table}
+            ORDER BY distance
+            LIMIT {count}
+        """
 
 class ClickHouseConnection:
     """
