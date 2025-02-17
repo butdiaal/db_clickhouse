@@ -1,11 +1,19 @@
 import time
+import logging
 from typing import Callable, Tuple
 from memory_profiler import memory_usage
 from search_Euclidean_Distance import main as method1
 from search_Faiss_IndexFlatL2 import main as method2
-from search_ClickHouse_L2Distance import main as method3
-from search_Faiss_IndexIVFFlat import main as method4
+from search_Faiss_IndexIVFFlat import main as method3
+from search_ClickHouse_L2Distance import main as method4
 from search_ClickHouse_cosineDistance import main as method5
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 def measure_memory_and_time(method: Callable[[], None]) -> Tuple[float, float]:
@@ -25,8 +33,8 @@ def measure_memory_and_time(method: Callable[[], None]) -> Tuple[float, float]:
 
 
 if __name__ == "__main__":
-    # Запрашиваем количество запусков
-    n_runs = int(input("Введите количество запусков: "))
+
+    n_runs = int(input("Enter the number of runs: "))
 
     times_method1 = []
     mems_method1 = []
@@ -44,7 +52,6 @@ if __name__ == "__main__":
     mems_method5 = []
 
     for _ in range(n_runs):
-
         time1, mem1 = measure_memory_and_time(method1)
         times_method1.append(time1)
         mems_method1.append(mem1)
@@ -80,18 +87,17 @@ if __name__ == "__main__":
     avg_time5 = sum(times_method5) / len(times_method5)
     avg_mem5 = sum(mems_method5) / len(mems_method5)
 
-    # Выводим результаты
-    print(f"Среднее время выполнения для метода 1: {avg_time1:.4f} секунд")
-    print(f"Средняя пиковая нагрузка памяти для метода 1: {avg_mem1:.2f} MiB\n")
+    logger.info(f"Average execution time for Method 1: {avg_time1:.4f} seconds")
+    logger.info(f"Average peak memory usage for Method 1: {avg_mem1:.2f} MiB\n")
 
-    print(f"Среднее время выполнения для метода 2: {avg_time2:.4f} секунд")
-    print(f"Средняя пиковая нагрузка памяти для метода 2: {avg_mem2:.2f} MiB\n")
+    logger.info(f"Average execution time for Method 2: {avg_time2:.4f} seconds")
+    logger.info(f"Average peak memory usage for Method 2: {avg_mem2:.2f} MiB\n")
 
-    print(f"Среднее время выполнения для метода 3: {avg_time3:.4f} секунд")
-    print(f"Средняя пиковая нагрузка памяти для метода 3: {avg_mem3:.2f} MiB\n")
+    logger.info(f"Average execution time for Method 3: {avg_time3:.4f} seconds")
+    logger.info(f"Average peak memory usage for Method 3: {avg_mem3:.2f} MiB\n")
 
-    print(f"Среднее время выполнения для метода 4: {avg_time4:.4f} секунд")
-    print(f"Средняя пиковая нагрузка памяти для метода 4: {avg_mem4:.2f} MiB\n")
+    logger.info(f"Average execution time for Method 4: {avg_time4:.4f} seconds")
+    logger.info(f"Average peak memory usage for Method 4: {avg_mem4:.2f} MiB\n")
 
-    print(f"Среднее время выполнения для метода 5: {avg_time5:.4f} секунд")
-    print(f"Средняя пиковая нагрузка памяти для метода 5: {avg_mem5:.2f} MiB\n")
+    logger.info(f"Average execution time for Method 5: {avg_time5:.4f} seconds")
+    logger.info(f"Average peak memory usage for Method 5: {avg_mem5:.2f} MiB\n")
