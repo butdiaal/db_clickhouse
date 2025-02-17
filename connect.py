@@ -29,7 +29,6 @@ class ClickHouseManager:
         databases = {db[0] for db in self.client.execute(Queries.SHOW_DATABASES)}
         return self.database in databases
 
-
     def check_table_exists(self, table_name: str) -> bool:
         """
         Checks if a specific table exists in the database.
@@ -52,7 +51,6 @@ class ClickHouseManager:
         self.client.execute(Queries.CREATE_DATABASE.format(database=self.database))
         logging.info(f"Database '{self.database}' created.")
 
-
     def create_table(self, table_name: str, ids: str, vectors: str) -> None:
         """
         Creates a table in the database if it does not exist.
@@ -70,7 +68,7 @@ class ClickHouseManager:
         )
 
         self.client.execute(
-            Queries. ADD_INDEX_L2.format(
+            Queries.ADD_INDEX_L2.format(
                 database=self.database, table=table_name, ids=ids, vectors=vectors
             )
         )
@@ -82,7 +80,6 @@ class ClickHouseManager:
         )
 
         logging.info(f"Table '{table_name}' in database '{self.database}' created.")
-
 
     def ensure_db_and_table(self, table_name: str, ids: str, vectors: str) -> None:
         """

@@ -9,8 +9,6 @@ from utils import Queries, VectorUtils, ClickHouseConnection
 logging.basicConfig(level=logging.INFO)
 
 
-
-
 class ClickHouseRepository:
     """
     A repository class for executing vector similarity searches in ClickHouse.
@@ -22,12 +20,12 @@ class ClickHouseRepository:
         self.database = connection.database
 
     def search_similar_vectors(
-            self,
-            input_vectors: List[List[float]],
-            table: str,
-            id_column: str,
-            vector_column: str,
-            count: int,
+        self,
+        input_vectors: List[List[float]],
+        table: str,
+        id_column: str,
+        vector_column: str,
+        count: int,
     ) -> Dict[int, List[Tuple[str, float]]]:
         """
         Finds the most similar vectors using the L2 (Euclidean) distance function in ClickHouse.
@@ -57,7 +55,6 @@ class ClickHouseRepository:
             results_dict[index] = result
 
         return results_dict
-
 
 
 def parse_arguments() -> argparse.Namespace:
