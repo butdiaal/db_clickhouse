@@ -51,7 +51,7 @@ class VectorSearcher:
     A class for performing similarity searches using FAISS.
     """
 
-    def __init__(self, vectors_index: Dict[str, np.ndarray], nlist: int = 100):
+    def __init__(self, vectors_index: Dict[str, np.ndarray], nlist: int):
         """
         Initializes the FAISS index.
 
@@ -72,7 +72,7 @@ class VectorSearcher:
 
         self.index.add(self.db_vectors)
 
-        self.index.nprobe = 100
+        self.index.nprobe = nlist
 
     def search_similar(
         self, input_vectors: List[List[float]], count: int
