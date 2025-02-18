@@ -72,6 +72,8 @@ class VectorSearcher:
 
         self.index.add(self.db_vectors)
 
+        self.index.nprobe = 100
+
     def search_similar(
         self, input_vectors: List[List[float]], count: int
     ) -> Dict[int, List[Tuple[str, float]]]:
