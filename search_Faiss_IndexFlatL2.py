@@ -1,9 +1,7 @@
-import json
 import faiss
 import logging
 import argparse
 import numpy as np
-from clickhouse_driver import Client, errors
 from typing import List, Dict, Tuple, Optional
 from utils import Queries, VectorUtils, ClickHouseConnection
 

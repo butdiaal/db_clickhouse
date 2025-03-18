@@ -3,7 +3,7 @@ import argparse
 import os
 import json
 from typing import List, Tuple
-from clickhouse_driver import Client, errors
+from clickhouse_driver import errors
 from utils import Queries, ClickHouseConnection
 
 logging.basicConfig(level=logging.INFO)

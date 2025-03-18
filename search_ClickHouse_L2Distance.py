@@ -1,9 +1,6 @@
-import json
 import logging
 import argparse
-import numpy as np
-from clickhouse_driver import Client, errors
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict
 from utils import Queries, VectorUtils, ClickHouseConnection
 
 logging.basicConfig(level=logging.INFO)

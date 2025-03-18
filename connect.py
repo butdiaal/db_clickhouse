@@ -1,7 +1,5 @@
 import logging
 import argparse
-from clickhouse_driver import Client, errors
-from typing import Set
 from utils import Queries, ClickHouseConnection
 
 logging.basicConfig(level=logging.INFO)
