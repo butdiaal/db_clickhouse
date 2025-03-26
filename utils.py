@@ -67,7 +67,6 @@ class ClickHouseConnection:
     def __init__(self, host: str, port: int, user: str, password: str, database: str):
         self.client = Client(host=host, port=port, user=user, password=password)
         self.database = database
-        logging.info("Successfully connected to ClickHouse.")
 
     def get_client(self) -> Client:
         return self.client
