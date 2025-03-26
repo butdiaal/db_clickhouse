@@ -44,6 +44,7 @@ class ClickHouseRepository:
             return None
 
 
+# noinspection PyArgumentList
 class VectorSearcher:
     """
     A class for performing similarity searches using FAISS.

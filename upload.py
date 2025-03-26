@@ -59,7 +59,12 @@ class DatabaseUploader:
         self.database = connection.database
 
     def insert_data(
-        self, database: str, table: str, ids: str, vectors: str, data: List[Tuple[str, List[float]]]
+        self,
+        database: str,
+        table: str,
+        ids: str,
+        vectors: str,
+        data: List[Tuple[str, List[float]]],
     ) -> None:
         """
         Inserts data into the specified ClickHouse table.
@@ -73,7 +78,9 @@ class DatabaseUploader:
             return
 
         try:
-            query = Queries.INSERT_DATA.format(database=database, table=table, ids=ids, vectors=vectors)
+            query = Queries.INSERT_DATA.format(
+                database=database, table=table, ids=ids, vectors=vectors
+            )
             self.client.execute(query, data)
             logging.info(
                 f"Successfully inserted {len(data)} records into '{database}.{table}'."
